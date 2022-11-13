@@ -1,7 +1,8 @@
 package com.coditory.quark.i18n.formatter;
 
 import com.coditory.quark.i18n.I18nMessageTemplates;
-import com.coditory.quark.i18n.api.I18nPath;
+import com.coditory.quark.i18n.I18nPath;
+import org.jetbrains.annotations.NotNull;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -9,7 +10,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class TimeI18NFormatterProvider implements I18nFormatterProvider {
+import static java.util.Objects.requireNonNull;
+
+public final class TimeI18NFormatterProvider implements I18nFormatterProvider {
     public static final String FILTER = "time";
 
     private static final Map<String, Integer> TIME_STYLES = Map.of(
@@ -20,7 +23,10 @@ public class TimeI18NFormatterProvider implements I18nFormatterProvider {
     );
 
     @Override
-    public I18nFormatter formatter(I18nMessageTemplates messages, List<String> args) {
+    @NotNull
+    public I18nFormatter formatter(@NotNull I18nMessageTemplates messages, @NotNull List<String> args) {
+        requireNonNull(messages);
+        requireNonNull(args);
         if (args.size() > 1) {
             throw new RuntimeException("Expected at most one argument got: " + args);
         }
@@ -31,10 +37,10 @@ public class TimeI18NFormatterProvider implements I18nFormatterProvider {
 
     private DateFormat createFormatter(I18nMessageTemplates messages, String type) {
         return messages.getTemplate(
-                I18nPath.of("formats", FILTER, type),
-                I18nPath.of("formats", FILTER, "default"),
-                I18nPath.of("formats", FILTER)
-        )
+                        I18nPath.ofNullable("formats", FILTER, type),
+                        I18nPath.of("formats", FILTER, "default"),
+                        I18nPath.of("formats", FILTER)
+                )
                 .map(format -> (DateFormat) new SimpleDateFormat(format))
                 .orElseGet(() -> createSystemFormatter(messages.getLocale(), type));
     }

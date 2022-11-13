@@ -11,24 +11,34 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import static java.util.stream.Collectors.toMap;
 import static com.coditory.quark.i18n.MessageTemplateNode.expressionNode;
 import static com.coditory.quark.i18n.MessageTemplateNode.staticNode;
+import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 import static com.coditory.quark.i18n.QuotedSpliterator.splitBy;
+import static java.util.stream.Collectors.toMap;
 
-class MessageTemplateParser implements MessageTemplateFormatter {
+final class MessageTemplateParser implements MessageTemplateFormatter {
     private final I18nMessageTemplatesPack messages;
     private final Map<String, I18nFormatterProvider> namedFormatters;
     private final Map<Class<?>, I18nFormatterProvider> typedFormatters;
     private final Map<Locale, Map<Class<?>, I18nFormatter>> typedFormattersCache = new HashMap<>();
 
-    public MessageTemplateParser(I18nMessageTemplatesPack messages, Map<String, I18nFormatterProvider> namedFormatters, Map<Class<?>, I18nFormatterProvider> typedFormatters) {
+    MessageTemplateParser(
+            I18nMessageTemplatesPack messages,
+            Map<String, I18nFormatterProvider> namedFormatters,
+            Map<Class<?>, I18nFormatterProvider> typedFormatters
+    ) {
+        expectNonNull(messages, "messages");
+        expectNonNull(namedFormatters, "namedFormatters");
+        expectNonNull(typedFormatters, "typedFormatters");
         this.messages = messages;
-        this.namedFormatters = namedFormatters;
-        this.typedFormatters = typedFormatters;
+        this.namedFormatters = Map.copyOf(namedFormatters);
+        this.typedFormatters = Map.copyOf(typedFormatters);
     }
 
     MessageTemplate parse(Locale locale, String template) {
+        expectNonNull(locale, "locale");
+        expectNonNull(template, "template");
         I18nMessageTemplates localizedMessages = messages.withLocale(locale);
         List<MessageTemplateNode> nodes = new ArrayList<>();
         boolean expression = false;
@@ -91,10 +101,10 @@ class MessageTemplateParser implements MessageTemplateFormatter {
 
     private Map<Class<?>, I18nFormatter> resolveTypeFormatters(I18nMessageTemplates messages) {
         return typedFormattersCache.computeIfAbsent(messages.getLocale(), (__) ->
-            this.typedFormatters.entrySet()
-                    .stream()
-                    .map(e -> Map.entry(e.getKey(), e.getValue().formatter(messages)))
-                    .collect(toMap(Entry::getKey, Entry::getValue))
+                this.typedFormatters.entrySet()
+                        .stream()
+                        .map(e -> Map.entry(e.getKey(), e.getValue().formatter(messages)))
+                        .collect(toMap(Entry::getKey, Entry::getValue))
         );
     }
 
@@ -119,6 +129,9 @@ class MessageTemplateParser implements MessageTemplateFormatter {
 
     @Override
     public String format(Locale locale, String message, Object... args) {
+        expectNonNull(locale, "locale");
+        expectNonNull(message, "message");
+        expectNonNull(args, "args");
         return parse(locale, message)
                 .format(args);
     }

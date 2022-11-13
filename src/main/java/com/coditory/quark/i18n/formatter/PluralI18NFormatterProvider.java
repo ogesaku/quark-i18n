@@ -1,16 +1,22 @@
 package com.coditory.quark.i18n.formatter;
 
 import com.coditory.quark.i18n.I18nMessageTemplates;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class PluralI18NFormatterProvider implements I18nFormatterProvider {
+import static java.util.Objects.requireNonNull;
+
+public final class PluralI18NFormatterProvider implements I18nFormatterProvider {
     public static final String FILTER = "plural";
 
     @Override
-    public I18nFormatter formatter(I18nMessageTemplates messages, List<String> args) {
+    @NotNull
+    public I18nFormatter formatter(@NotNull I18nMessageTemplates messages, @NotNull List<String> args) {
+        requireNonNull(messages);
+        requireNonNull(args);
         if (args.size() < 3) {
             throw new RuntimeException("Expected at least 3 arguments got: " + args);
         }
@@ -51,12 +57,14 @@ public class PluralI18NFormatterProvider implements I18nFormatterProvider {
     static class PluralI18NFormatter implements I18nFormatter {
         private final List<PluralIntervals> intervals;
 
-        public PluralI18NFormatter(List<PluralIntervals> intervals) {
-            this.intervals = intervals;
+        public PluralI18NFormatter(@NotNull List<PluralIntervals> intervals) {
+            this.intervals = requireNonNull(intervals);
         }
 
         @Override
-        public String format(Object value) {
+        @NotNull
+        public String format(@NotNull Object value) {
+            requireNonNull(value);
             if (!(value instanceof Number)) {
                 return Objects.toString(value);
             }

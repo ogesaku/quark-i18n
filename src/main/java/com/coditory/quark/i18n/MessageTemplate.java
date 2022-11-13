@@ -3,19 +3,22 @@ package com.coditory.quark.i18n;
 import java.util.List;
 import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
+import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 import static java.util.stream.Collectors.joining;
 
-class MessageTemplate {
+final class MessageTemplate {
     private final String template;
     private final List<MessageTemplateNode> templateNodes;
 
     MessageTemplate(String template, List<MessageTemplateNode> templateNodes) {
-        this.template = requireNonNull(template);
-        this.templateNodes = requireNonNull(templateNodes);
+        expectNonNull(template, "template");
+        expectNonNull(templateNodes, "templateNodes");
+        this.template = template;
+        this.templateNodes = List.copyOf(templateNodes);
     }
 
     public String format(Object[] args) {
+        expectNonNull(args, "args");
         return templateNodes.stream()
                 .map(node -> node.resolve(args))
                 .collect(joining());

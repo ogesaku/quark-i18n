@@ -1,13 +1,16 @@
 package com.coditory.quark.i18n.formatter;
 
 import com.coditory.quark.i18n.I18nMessageTemplates;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public interface I18nFormatterProvider {
-    I18nFormatter formatter(I18nMessageTemplates messages, List<String> args);
+    @NotNull
+    I18nFormatter formatter(@NotNull I18nMessageTemplates messages, @NotNull List<String> args);
 
-    default I18nFormatter formatter(I18nMessageTemplates messages) {
+    @NotNull
+    default I18nFormatter formatter(@NotNull I18nMessageTemplates messages) {
         return formatter(messages, List.of());
     }
 }

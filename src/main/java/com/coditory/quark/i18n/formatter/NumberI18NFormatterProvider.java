@@ -1,17 +1,23 @@
 package com.coditory.quark.i18n.formatter;
 
 import com.coditory.quark.i18n.I18nMessageTemplates;
-import com.coditory.quark.i18n.api.I18nPath;
+import com.coditory.quark.i18n.I18nPath;
+import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.List;
 
-public class NumberI18NFormatterProvider implements I18nFormatterProvider {
+import static java.util.Objects.requireNonNull;
+
+public final class NumberI18NFormatterProvider implements I18nFormatterProvider {
     public static final String FILTER = "number";
 
     @Override
-    public I18nFormatter formatter(I18nMessageTemplates messages, List<String> args) {
+    @NotNull
+    public I18nFormatter formatter(@NotNull I18nMessageTemplates messages, @NotNull List<String> args) {
+        requireNonNull(messages);
+        requireNonNull(args);
         if (args.size() > 1) {
             throw new RuntimeException("Expected at most one argument got: " + args);
         }
@@ -48,22 +54,22 @@ public class NumberI18NFormatterProvider implements I18nFormatterProvider {
 
     private NumberFormat createIntegerFormatter(I18nMessageTemplates messages, String type) {
         return messages.getTemplate(
-                I18nPath.of("formats", FILTER, "int", type),
-                I18nPath.of("formats", FILTER, "int"),
-                I18nPath.of("formats", FILTER, "default"),
-                I18nPath.of("formats", FILTER)
-        )
+                        I18nPath.ofNullable("formats", FILTER, "int", type),
+                        I18nPath.of("formats", FILTER, "int"),
+                        I18nPath.of("formats", FILTER, "default"),
+                        I18nPath.of("formats", FILTER)
+                )
                 .map(format -> (NumberFormat) new DecimalFormat(format))
                 .orElseGet(() -> NumberFormat.getIntegerInstance(messages.getLocale()));
     }
 
     private NumberFormat createFloatFormatter(I18nMessageTemplates messages, String type) {
         return messages.getTemplate(
-                I18nPath.of("formats", FILTER, "float", type),
-                I18nPath.of("formats", FILTER, "float"),
-                I18nPath.of("formats", FILTER, "default"),
-                I18nPath.of("formats", FILTER)
-        )
+                        I18nPath.ofNullable("formats", FILTER, "float", type),
+                        I18nPath.of("formats", FILTER, "float"),
+                        I18nPath.of("formats", FILTER, "default"),
+                        I18nPath.of("formats", FILTER)
+                )
                 .map(format -> (NumberFormat) new DecimalFormat(format))
                 .orElseGet(() -> NumberFormat.getNumberInstance(messages.getLocale()));
     }

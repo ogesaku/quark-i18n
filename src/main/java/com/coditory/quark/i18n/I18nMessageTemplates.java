@@ -1,8 +1,6 @@
 package com.coditory.quark.i18n;
 
-import com.coditory.quark.i18n.api.I18nKey;
-import com.coditory.quark.i18n.api.I18nKeyGenerator;
-import com.coditory.quark.i18n.api.I18nPath;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -11,18 +9,26 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-public class I18nMessageTemplates {
+import static com.coditory.quark.i18n.Preconditions.expectNonNull;
+
+public final class I18nMessageTemplates {
     private final Map<I18nKey, String> templates;
     private final I18nKeyGenerator keyGenerator;
     private final Locale locale;
 
-    public I18nMessageTemplates(Map<I18nKey, String> templates, I18nKeyGenerator keyGenerator, Locale locale) {
-        this.templates = templates;
-        this.keyGenerator = keyGenerator;
-        this.locale = locale;
+    I18nMessageTemplates(
+            Map<I18nKey, String> templates,
+            I18nKeyGenerator keyGenerator,
+            Locale locale
+    ) {
+        expectNonNull(templates, "templates");
+        this.templates = Map.copyOf(templates);
+        this.keyGenerator = expectNonNull(keyGenerator, "keyGenerator");
+        this.locale = expectNonNull(locale, "locale");
     }
 
-    public Optional<String> getTemplate(I18nPath... paths) {
+    @NotNull
+    public Optional<String> getTemplate(@NotNull I18nPath... paths) {
         return Arrays.stream(paths)
                 .map(this::getTemplate)
                 .filter(Optional::isPresent)
@@ -30,7 +36,8 @@ public class I18nMessageTemplates {
                 .findFirst();
     }
 
-    public Optional<String> getTemplate(I18nPath path) {
+    @NotNull
+    public Optional<String> getTemplate(@NotNull I18nPath path) {
         return keyGenerator.keys(List.of(), I18nKey.of(locale, path))
                 .stream()
                 .map(templates::get)

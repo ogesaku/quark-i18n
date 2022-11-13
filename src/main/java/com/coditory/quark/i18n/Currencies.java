@@ -1,5 +1,8 @@
 package com.coditory.quark.i18n;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Currency;
 import java.util.Locale;
 import java.util.Optional;
@@ -46,7 +49,8 @@ public final class Currencies {
         throw new UnsupportedOperationException("Do not instantiate utility class");
     }
 
-    public static Currency parseCurrency(String value) {
+    @NotNull
+    public static Currency parseCurrency(@NotNull String value) {
         expectNonNull(value, "value");
         Currency currency;
         try {
@@ -62,7 +66,8 @@ public final class Currencies {
         return currency;
     }
 
-    public static Currency parseCurrencyOrNull(String value) {
+    @Nullable
+    public static Currency parseCurrencyOrNull(@NotNull String value) {
         try {
             return parseCurrency(value);
         } catch (Exception e) {
@@ -70,12 +75,14 @@ public final class Currencies {
         }
     }
 
-    public static Currency parseCurrencyOrDefault(String value, Currency defaultValue) {
+    @NotNull
+    public static Currency parseCurrencyOrDefault(@NotNull String value, @NotNull Currency defaultValue) {
         Currency result = parseCurrencyOrNull(value);
         return result == null ? defaultValue : result;
     }
 
-    public static Optional<Currency> parseCurrencyOrEmpty(String value) {
+    @NotNull
+    public static Optional<Currency> parseCurrencyOrEmpty(@NotNull String value) {
         return Optional.ofNullable(parseCurrencyOrNull(value));
     }
 }

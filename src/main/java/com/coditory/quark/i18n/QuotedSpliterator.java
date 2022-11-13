@@ -3,8 +3,15 @@ package com.coditory.quark.i18n;
 import java.util.ArrayList;
 import java.util.List;
 
-class QuotedSpliterator {
+import static com.coditory.quark.i18n.Preconditions.expectNonNull;
+
+final class QuotedSpliterator {
+    private QuotedSpliterator() {
+        throw new UnsupportedOperationException("Do not instantiate utility class");
+    }
+
     static List<String> splitBy(String expression, char separator) {
+        expectNonNull(expression, "expression");
         List<String> result = new ArrayList<>();
         boolean escaped = false;
         Character quote = null;

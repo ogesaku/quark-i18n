@@ -1,5 +1,8 @@
 package com.coditory.quark.i18n;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -8,6 +11,7 @@ import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 
 public final class Locales {
     private static final Set<Locale> AVAILABLE_LOCALES = Set.of(Locale.getAvailableLocales());
+
     /**
      * English
      */
@@ -77,12 +81,13 @@ public final class Locales {
         throw new UnsupportedOperationException("Do not instantiate utility class");
     }
 
-    public static boolean isAvailable(Locale locale) {
+    public static boolean isAvailable(@NotNull Locale locale) {
         expectNonNull(locale, "locale");
         return AVAILABLE_LOCALES.contains(locale);
     }
 
-    public static Locale parseLocale(String value) {
+    @NotNull
+    public static Locale parseLocale(@NotNull String value) {
         expectNonNull(value, "value");
         Locale locale;
         try {
@@ -96,7 +101,8 @@ public final class Locales {
         return locale;
     }
 
-    public static Locale parseLocaleOrNull(String value) {
+    @Nullable
+    public static Locale parseLocaleOrNull(@NotNull String value) {
         try {
             return parseLocale(value);
         } catch (Exception e) {
@@ -104,12 +110,14 @@ public final class Locales {
         }
     }
 
-    public static Locale parseLocaleOrDefault(String value, Locale defaultLocale) {
+    @NotNull
+    public static Locale parseLocaleOrDefault(@NotNull String value, @NotNull Locale defaultLocale) {
         Locale result = parseLocaleOrNull(value);
         return result == null ? defaultLocale : result;
     }
 
-    public static Optional<Locale> parseLocaleOrEmpty(String value) {
+    @NotNull
+    public static Optional<Locale> parseLocaleOrEmpty(@NotNull String value) {
         return Optional.ofNullable(parseLocaleOrNull(value));
     }
 }
