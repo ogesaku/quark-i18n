@@ -7,6 +7,7 @@ import com.coditory.quark.i18n.formatter.MoneyI18NFormatterProvider;
 import com.coditory.quark.i18n.formatter.NumberI18NFormatterProvider;
 import com.coditory.quark.i18n.formatter.PluralI18NFormatterProvider;
 import com.coditory.quark.i18n.formatter.TimeI18NFormatterProvider;
+import com.coditory.quark.i18n.loader.I18nMessagesLoader;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
@@ -36,19 +37,55 @@ public final class I18nMessagePackBuilder {
             "time", new TimeI18NFormatterProvider(),
             "plural", new PluralI18NFormatterProvider()
     );
-    private final I18nMessageTemplatesPack.I18nRawMessagesBuilder messagesBuilder = I18nMessageTemplatesPack.builder();
     private final Map<Class<?>, I18nFormatterProvider> typeFormatters = new HashMap<>(DEFAULT_TYPE_FORMATTERS);
     private final Map<String, I18nFormatterProvider> namedFormatters = new HashMap<>(DEFAULT_NAMED_FORMATTERS);
+    private final AggregatedI18nMessagesLoader loader = new AggregatedI18nMessagesLoader();
     private final List<I18nPath> prefixes = new ArrayList<>();
     private I18nKeyGenerator keyGenerator = relaxedI18nKeyGenerator();
     private I18nUnresolvedMessageHandler unresolvedMessageHandler = I18nUnresolvedMessageHandler.throwError();
 
+    private I18nMessagePackBuilder copy() {
+        I18nMessagePackBuilder builder = new I18nMessagePackBuilder();
+        builder.typeFormatters.clear();
+        builder.typeFormatters.putAll(typeFormatters);
+        builder.namedFormatters.clear();
+        builder.namedFormatters.putAll(namedFormatters);
+        builder.loader.addLoader(loader.copy());
+        builder.prefixes.clear();
+        builder.prefixes.addAll(prefixes);
+        builder.keyGenerator = keyGenerator;
+        builder.unresolvedMessageHandler = unresolvedMessageHandler;
+        return builder;
+    }
+
     @NotNull
-    public I18nMessagePackBuilder addMessage(@NotNull Locale locale, @NotNull String key, @NotNull String message) {
+    public I18nMessagePackBuilder addLoader(@NotNull I18nMessagesLoader loader) {
+        expectNonNull(loader, "loader");
+        this.loader.addLoader(loader);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder addMessage(@NotNull Locale locale, @NotNull I18nPath path, @NotNull String template) {
         expectNonNull(locale, "locale");
-        expectNonBlank(key, "key");
-        expectNonBlank(message, "message");
-        messagesBuilder.addMessage(locale, key, message);
+        expectNonNull(path, "path");
+        expectNonBlank(template, "template");
+        return addMessage(I18nKey.of(locale, path), template);
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder addMessage(@NotNull Locale locale, @NotNull String path, @NotNull String template) {
+        expectNonNull(locale, "locale");
+        expectNonBlank(path, "path");
+        expectNonBlank(template, "template");
+        return addMessage(I18nKey.of(locale, path), template);
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder addMessage(@NotNull I18nKey key, @NotNull String template) {
+        expectNonNull(key, "key");
+        expectNonBlank(template, "template");
+        this.loader.addMessage(key, template);
         return this;
     }
 
@@ -116,12 +153,17 @@ public final class I18nMessagePackBuilder {
 
     @NotNull
     public I18nMessagePack build() {
-        I18nMessageTemplatesPack messages = messagesBuilder
-                .withI18nKeyGenerator(keyGenerator)
-                .build();
-        MessageTemplateParser parser = new MessageTemplateParser(messages, this.namedFormatters, this.typeFormatters);
-        Map<I18nKey, MessageTemplate> templates = parseTemplates(messages, parser);
+        Map<I18nKey, String> entries = loader.load();
+        I18nMessageTemplatesPack templatePack = new I18nMessageTemplatesPack(entries, keyGenerator);
+        MessageTemplateParser parser = new MessageTemplateParser(templatePack, this.namedFormatters, this.typeFormatters);
+        Map<I18nKey, MessageTemplate> templates = parseTemplates(templatePack, parser);
         return new ImmutableI18nMessagePack(templates, parser, unresolvedMessageHandler, keyGenerator, prefixes);
+    }
+
+    @NotNull
+    public Reloadable18nMessagePack buildReloadable() {
+        I18nMessagePackBuilder copy = this.copy();
+        return new Reloadable18nMessagePack(copy::build);
     }
 
     private Map<I18nKey, MessageTemplate> parseTemplates(I18nMessageTemplatesPack messages, MessageTemplateParser parser) {

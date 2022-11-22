@@ -15,24 +15,28 @@ public record I18nKey(Locale locale, I18nPath path) {
         this.path = expectNonNull(path, "path");
     }
 
+    @NotNull
     public static I18nKey of(@NotNull Locale locale, @NotNull String path) {
         expectNonNull(locale, "locale");
         expectNonBlank(path, "path");
         return new I18nKey(locale, I18nPath.of(path));
     }
 
+    @NotNull
     public static I18nKey of(@NotNull Locale locale, String... path) {
         expectNonNull(locale, "locale");
         expectNonNull(path, "path");
         return new I18nKey(locale, I18nPath.of(path));
     }
 
+    @NotNull
     public static I18nKey of(@NotNull Locale locale, @NotNull I18nPath path) {
         expectNonNull(locale, "locale");
         expectNonNull(path, "path");
         return new I18nKey(locale, path);
     }
 
+    @NotNull
     public I18nKey withLocale(@NotNull Locale locale) {
         expectNonNull(locale, "locale");
         return Objects.equals(this.locale, locale)
@@ -40,11 +44,24 @@ public record I18nKey(Locale locale, I18nPath path) {
                 : new I18nKey(locale, path);
     }
 
+    @NotNull
     public I18nKey withPath(@NotNull I18nPath path) {
         expectNonNull(path, "path");
         return Objects.equals(this.path, path)
                 ? this
                 : new I18nKey(locale, path);
+    }
+
+    @NotNull
+    public I18nKey prefix(@NotNull I18nPath path) {
+        expectNonNull(path, "path");
+        return new I18nKey(locale, path.child(this.path));
+    }
+
+    @NotNull
+    public I18nKey child(@NotNull String segment) {
+        expectNonNull(segment, "segment");
+        return new I18nKey(locale, path.child(segment));
     }
 
     public String getPathValue() {

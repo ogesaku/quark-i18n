@@ -1,6 +1,7 @@
 package com.coditory.quark.i18n;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,6 +90,15 @@ public final class I18nPath {
 
     public boolean isRoot() {
         return path.isEmpty();
+    }
+
+    @Nullable
+    public String getLastSegment() {
+        return segments.isEmpty() ? null : segments.get(segments.size() - 1);
+    }
+
+    public boolean hasLastSegment() {
+        return !segments.isEmpty();
     }
 
     @NotNull

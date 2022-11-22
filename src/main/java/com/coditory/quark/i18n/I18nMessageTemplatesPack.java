@@ -1,10 +1,8 @@
 package com.coditory.quark.i18n;
 
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 import static java.util.stream.Collectors.toMap;
@@ -37,35 +35,5 @@ final class I18nMessageTemplatesPack {
                 .stream()
                 .map(I18nKey::locale)
                 .collect(toSet());
-    }
-
-    Stream<Map.Entry<I18nKey, String>> entries() {
-        return messages.entrySet().stream();
-    }
-
-    static I18nRawMessagesBuilder builder() {
-        return new I18nRawMessagesBuilder();
-    }
-
-    static final class I18nRawMessagesBuilder {
-        private final Map<I18nKey, String> messages = new HashMap<>();
-        private I18nKeyGenerator keyGenerator;
-
-        public I18nRawMessagesBuilder addMessage(Locale locale, String key, String message) {
-            expectNonNull(locale, "locale");
-            expectNonNull(key, "key");
-            expectNonNull(message, "message");
-            this.messages.put(I18nKey.of(locale, key), message);
-            return this;
-        }
-
-        public I18nRawMessagesBuilder withI18nKeyGenerator(I18nKeyGenerator keyGenerator) {
-            this.keyGenerator = expectNonNull(keyGenerator, "keyGenerator");
-            return this;
-        }
-
-        public I18nMessageTemplatesPack build() {
-            return new I18nMessageTemplatesPack(messages, keyGenerator);
-        }
     }
 }

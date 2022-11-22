@@ -12,7 +12,13 @@ public interface I18nMessagePack {
     }
 
     @NotNull
-    I18nMessages localized(@NotNull Locale locale);
+    I18nMessages localize(@NotNull Locale locale);
+
+    @NotNull
+    default I18nMessages localize(@NotNull String localeTag) {
+        Locale locale = Locales.parseLocale(localeTag);
+        return localize(locale);
+    }
 
     @NotNull
     I18nMessagePack addPrefix(@NotNull String prefix);

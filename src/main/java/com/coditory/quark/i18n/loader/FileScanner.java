@@ -3,7 +3,6 @@ package com.coditory.quark.i18n.loader;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -11,79 +10,61 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Queue;
+import java.util.Spliterator;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.joining;
+import static java.util.Spliterators.spliteratorUnknownSize;
+import static java.util.stream.Collectors.toCollection;
 
 final class FileScanner implements Iterator<File> {
-    public static void main(String[] args) {
-        matches("/abc/x123.json", "/abc/**/y*", '/');
+    public static FileScanner scanFiles(String firstPattern, String... otherPatterns) {
+        FileScannerBuilder builder = builder();
+        builder.scanLocation(firstPattern);
+        Arrays.stream(otherPatterns)
+                .forEach(builder::scanLocation);
+        return builder.build();
     }
 
-    public static void matches(String input, String pattern, char separator) {
-        String escapedSeparator = separator == '/' ? "/" : "\\\\";
-        String regex = split(pattern, "\\*\\*+" + escapedSeparator)
-                .map(chunk -> split(chunk, "\\*")
-                        .map(subchunk -> subchunk.isEmpty() ? subchunk : Pattern.quote(subchunk))
-                        .collect(joining("[^" + escapedSeparator + "]*"))
-                ).collect(joining("(.*/)?"));
-        System.out.println("Input: " + input + " Pattern: " + pattern + " Regex: " + regex + " Matches: " + input.matches(regex));
+    public static FileScanner scanClassPath(String firstPattern, String... otherPatterns) {
+        return scanClassPath(Thread.currentThread().getContextClassLoader(), firstPattern, otherPatterns);
     }
 
-    private static Stream<String> split(String input, String separator) {
-        Stream<String> chunks = Arrays.stream(input.split(separator));
-        return input.matches(".*" + separator + "$")
-                ? Stream.concat(chunks, Stream.of(""))
-                : chunks;
-    }
-
-    public static void main2(String[] args) throws IOException {
-        List<File> result = listFilesOnClassPath(FileScanner.class.getClassLoader(), ".", (file) -> {
-            System.out.println("Predicate for: " + file.getAbsolutePath());
-            return true;
-        });
-        System.out.println("RESULT:");
-        for (File file : result) {
-            System.out.println(file.getName());
-        }
-    }
-
-    private static List<File> listFilesOnClassPath(ClassLoader classLoader, String path, Predicate<File> filter) throws IOException {
-        Iterator<File> iterator = findFilesOnClassPath(classLoader, path, filter);
-        List<File> result = new ArrayList<>();
-        while (iterator.hasNext()) {
-            result.add(iterator.next());
-        }
-        return result;
-    }
-
-    private static Iterator<File> findFilesOnClassPath(ClassLoader classLoader, String path, Predicate<File> filter) throws IOException {
-        Enumeration<URL> resources = classLoader.getResources(path);
-        List<File> locations = new ArrayList<>();
-        while (resources.hasMoreElements()) {
-            URL resource = resources.nextElement();
-            locations.add(new File(resource.getFile()));
-        }
-        return new FileScanner(locations, filter);
+    public static FileScanner scanClassPath(ClassLoader classLoader, String firstPattern, String... otherPatterns) {
+        FileScannerBuilder builder = builder();
+        builder
+                .scanClassPath(classLoader)
+                .scanLocation(firstPattern);
+        Arrays.stream(otherPatterns)
+                .forEach(builder::scanLocation);
+        return builder.build();
     }
 
     private final Queue<File> files;
     private final Predicate<File> filter;
     private File next;
 
-    private FileScanner(List<File> filesToScan, Predicate<File> filter) {
-        this.files = new LinkedList<>();
+    private FileScanner(List<File> files, Predicate<File> filter) {
+        this.files = files.stream()
+                .distinct()
+                .filter(filter)
+                .collect(toCollection(LinkedList::new));
         this.filter = filter;
-        for (File file : filesToScan) {
-            if (filter.test(file)) {
-                files.add(file);
-            }
-        }
-        next = findNext();
+        this.next = findNext();
+    }
+
+    public Stream<File> stream() {
+        FileScanner copy = new FileScanner(List.copyOf(files), filter);
+        return StreamSupport.stream(spliteratorUnknownSize(copy, Spliterator.ORDERED), false);
+    }
+
+    public List<File> toList() {
+        return stream().toList();
     }
 
     @Override
@@ -125,74 +106,87 @@ final class FileScanner implements Iterator<File> {
         return result;
     }
 
+    public static FileScannerBuilder builder() {
+        return new FileScannerBuilder();
+    }
+
     public static class FileScannerBuilder {
-        private final List<File> locationsToScan = new ArrayList<>();
-        private final List<Predicate<File>> filters = new ArrayList<>();
+        private final List<String> locations = new ArrayList<>();
+        private final List<Predicate<String>> filters = new ArrayList<>();
         private boolean combineFiltersWithOr = true;
+        private ClassLoader classLoader;
 
-        public FileScannerBuilder addLocationToScan(String location) {
-            requireNonNull(location);
-            return addLocationToScan(new File(location));
+        public FileScannerBuilder scanClassPath() {
+            return scanClassPath(Thread.currentThread().getContextClassLoader());
         }
 
-        public FileScannerBuilder addLocationToScan(Path path) {
-            requireNonNull(path);
-            return addLocationToScan(path.toFile());
-        }
-
-        public FileScannerBuilder addLocationToScan(File location) {
-            requireNonNull(location);
-            locationsToScan.add(location);
+        public FileScannerBuilder scanClassPath(ClassLoader classLoader) {
+            this.classLoader = requireNonNull(classLoader);
             return this;
         }
 
-        public FileScannerBuilder addClassPathToScan(ClassLoader classLoader) {
-            requireNonNull(classLoader);
-            return addClassPathToScan(classLoader, ".");
+        public FileScannerBuilder scanLocations(List<String> patterns) {
+            requireNonNull(patterns);
+            patterns.forEach(this::scanLocation);
+            return this;
         }
 
-        public FileScannerBuilder addClassPathToScan(ClassLoader classLoader, String path) {
-            requireNonNull(classLoader);
-            requireNonNull(path);
-            try {
-                Enumeration<URL> resources = classLoader.getResources(path);
-                while (resources.hasMoreElements()) {
-                    URL resource = resources.nextElement();
-                    locationsToScan.add(new File(resource.getFile()));
-                }
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Could not get resource from classpath", e);
+        public FileScannerBuilder scanLocation(String pattern) {
+            requireNonNull(pattern);
+            if (pattern.contains("\\")) {
+                throw new IllegalArgumentException("Expected only forward slashes");
+            }
+            String dir = SimpleFilePattern.extractBaseDir(pattern);
+            if (!dir.isBlank()) {
+                locations.add(dir);
+            }
+            if (!Objects.equals(dir, pattern)) {
+                filter(pattern);
             }
             return this;
         }
 
-        public FileScannerBuilder addFilter(Predicate<File> filter) {
+        public FileScannerBuilder filter(Predicate<String> filter) {
             requireNonNull(filter);
-            filters.add(filter);
+            filters.add(path -> {
+                String normalizedPath = normalizePath(path);
+                return filter.test(normalizedPath);
+            });
             return this;
         }
 
-        public FileScannerBuilder addRegexFilter(String regex) {
+        private String normalizePath(String path) {
+            return File.separatorChar == '\\'
+                    ? path.replace("\\", "/")
+                    : path;
+        }
+
+        public FileScannerBuilder filter(List<String> patterns) {
+            requireNonNull(patterns);
+            patterns.forEach(this::filter);
+            return this;
+        }
+
+        public FileScannerBuilder filter(String pattern) {
+            requireNonNull(pattern);
+            if (pattern.contains("\\")) {
+                throw new IllegalArgumentException("Expected unix file separators");
+            }
+            Predicate<String> predicate = SimpleFilePattern.compile(pattern, '/')
+                    .asMatchPredicate();
+            return filter(predicate);
+        }
+
+        public FileScannerBuilder filterWithRegex(String regex) {
             requireNonNull(regex);
             Pattern pattern = Pattern.compile(regex);
-            return addRegexFilter(pattern);
+            return filterWithRegex(pattern);
         }
 
-        public FileScannerBuilder addRegexFilter(Pattern pattern) {
+        public FileScannerBuilder filterWithRegex(Pattern pattern) {
             requireNonNull(pattern);
             Predicate<String> namePredicate = pattern.asMatchPredicate();
-            return addFilter(file -> namePredicate.test(file.getAbsolutePath()));
-        }
-
-        public FileScannerBuilder addFilePatternFilter(String pattern) {
-            // TODO: Finish
-            // filters.add(filter);
-            return this;
-        }
-
-        public FileScannerBuilder combineFiltersWithOr() {
-            combineFiltersWithOr = true;
-            return this;
+            return filter(namePredicate);
         }
 
         public FileScannerBuilder combineFiltersWithAnd() {
@@ -201,9 +195,47 @@ final class FileScanner implements Iterator<File> {
         }
 
         public FileScanner build() {
-            Predicate<File> aggregatedFilter = filters.stream()
+            return classLoader != null
+                    ? buildForClassPath()
+                    : buildForFiles();
+        }
+
+        private FileScanner buildForFiles() {
+            List<File> files = locations.stream()
+                    .map(File::new)
+                    .distinct()
+                    .toList();
+            return new FileScanner(files, aggregateFilters());
+        }
+
+        private FileScanner buildForClassPath() {
+            List<File> files = locations.isEmpty()
+                    ? listFilesFromClassPath(classLoader, ".")
+                    : locations.stream()
+                    .flatMap(location -> listFilesFromClassPath(classLoader, location).stream())
+                    .distinct()
+                    .toList();
+            return new FileScanner(files, aggregateFilters());
+        }
+
+        private Predicate<File> aggregateFilters() {
+            Predicate<String> aggregated = filters.stream()
                     .reduce(f -> true, (a, c) -> combineFiltersWithOr ? c.or(a) : c.and(a));
-            return new FileScanner(locationsToScan, aggregatedFilter);
+            return (file) -> aggregated.test(normalizePath(file.getAbsolutePath()));
+        }
+
+        private List<File> listFilesFromClassPath(ClassLoader classLoader, String path) {
+            List<File> files = new ArrayList<>();
+            try {
+                Enumeration<URL> resources = classLoader.getResources(path);
+                while (resources.hasMoreElements()) {
+                    URL resource = resources.nextElement();
+                    files.add(new File(resource.getFile()));
+                }
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Could not get resource from classpath", e);
+            }
+            return files;
         }
     }
 }

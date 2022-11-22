@@ -32,7 +32,7 @@ public final class I18nMessages {
 
     @NotNull
     public I18nMessages addPrefix(@NotNull String prefix) {
-        return messagePack.addPrefix(prefix).localized(locale);
+        return messagePack.addPrefix(prefix).localize(locale);
     }
 
     @NotNull

@@ -39,7 +39,7 @@ final class ImmutableI18nMessagePack implements I18nMessagePack {
 
     @NotNull
     @Override
-    public I18nMessages localized(@NotNull Locale locale) {
+    public I18nMessages localize(@NotNull Locale locale) {
         expectNonNull(locale, "locale");
         return new I18nMessages(this, locale);
     }

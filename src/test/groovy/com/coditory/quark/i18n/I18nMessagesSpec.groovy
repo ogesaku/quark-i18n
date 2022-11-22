@@ -13,7 +13,7 @@ class I18nMessagesSpec extends Specification {
                     .addMessage(PL, "hello", "Cześć")
                     .addMessage(EN, "hello", "Hello")
                     .build()
-                    .localized(PL)
+                    .localize(PL)
         when:
             String result = messages.getMessage("hello")
         then:
@@ -26,7 +26,7 @@ class I18nMessagesSpec extends Specification {
                     .setDefaultLocale(EN)
                     .addMessage(EN, "bye", "Bye")
                     .build()
-                    .localized(PL)
+                    .localize(PL)
         when:
             String result = messages.getMessage("bye")
         then:
@@ -39,7 +39,7 @@ class I18nMessagesSpec extends Specification {
                     .addMessage(PL, "home.hello", "Witamy")
                     .addMessage(EN, "home.bye", "Bye")
                     .build()
-                    .localized(PL)
+                    .localize(PL)
         when:
             messages.getMessage("home.helloo")
         then:
@@ -60,7 +60,7 @@ class I18nMessagesSpec extends Specification {
                     .addMessage(PL, "hello", "Witaj {0} {1}")
                     .addMessage(EN, "bye", "Bye {0} {1}")
                     .build()
-                    .localized(PL)
+                    .localize(PL)
         when:
             String result = messages.getMessage("hello", "Jan", "Kowalski")
         then:

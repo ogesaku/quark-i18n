@@ -1,7 +1,11 @@
 package com.coditory.quark.i18n;
 
-public final class I18nMessagesException extends RuntimeException {
-    I18nMessagesException(String message) {
+public class I18nMessagesException extends RuntimeException {
+    public I18nMessagesException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public I18nMessagesException(String message) {
         super(message);
     }
 }
