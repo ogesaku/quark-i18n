@@ -18,13 +18,13 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
 
 public class I18nMessagesFileLoaderBuilder {
-    private static final I18nKeyParser DEFAULT_KEY_PARSER = new FileNameI18nKeyParser();
+    private static final I18nKeyParser DEFAULT_KEY_PARSER = new DefaultI18nKeyParser();
     private static final Map<String, I18nParser> DEFAULT_FILE_PARSERS = Map.of(
             "yaml", YamlI18nParser.instance(),
             "yml", YamlI18nParser.instance(),
             "properties", PropertiesI18nParser.instance()
     );
-    private final List<PathTemplate> locations = new ArrayList<>();
+    private final List<I18nPathPattern> locations = new ArrayList<>();
     private final Map<String, I18nParser> fileParsersByExtension = new HashMap<>(DEFAULT_FILE_PARSERS);
     private final Map<String, I18nKeyParser> keyParsersByExtension = new HashMap<>();
     private ClassLoader classLoader;
@@ -41,9 +41,9 @@ public class I18nMessagesFileLoaderBuilder {
         return this;
     }
 
-    public I18nMessagesFileLoaderBuilder scanLocation(String filePattern) {
+    public I18nMessagesFileLoaderBuilder scanPathPattern(String filePattern) {
         requireNonNull(filePattern);
-        PathTemplate template = PathTemplate.of(filePattern);
+        I18nPathPattern template = I18nPathPattern.of(filePattern);
         this.locations.add(template);
         return this;
     }

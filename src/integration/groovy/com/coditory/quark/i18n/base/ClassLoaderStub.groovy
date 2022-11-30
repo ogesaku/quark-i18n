@@ -11,7 +11,9 @@ class ClassLoaderStub extends ClassLoader {
     private final Map<String, URL> overrides = new ConcurrentHashMap<>()
 
     void add(String name, URL url) {
-        overrides.put(name, url)
+        String normalized = normalizeName(name)
+        println "CLASSPATH ADD: ${normalized} ${url}"
+        overrides.put(normalized, url)
     }
 
     void add(String name, File file) {
@@ -38,9 +40,25 @@ class ClassLoaderStub extends ClassLoader {
 
     @Override
     URL getResource(String name) {
-        URL url = overrides.get(name);
+        Objects.requireNonNull(name)
+        URL url = overrides.get(normalizeName(name))
         return url != null
                 ? url
                 : super.getResource(name)
+    }
+
+    @Override
+    Enumeration<URL> getResources(String name) throws IOException {
+        Objects.requireNonNull(name)
+        URL resource = getResource(normalizeName(name))
+        return resource != null
+                ? Collections.enumeration([resource])
+                : super.getResources(name)
+    }
+
+    private String normalizeName(String name) {
+        return name.endsWith("/")
+                ? name.substring(0, name.length())
+                : name
     }
 }

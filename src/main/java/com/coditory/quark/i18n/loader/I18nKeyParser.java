@@ -7,5 +7,5 @@ import java.util.Map;
 
 @FunctionalInterface
 public interface I18nKeyParser {
-    Map<I18nKey, String> parseKeys(PathTemplate pathTemplate, File file, Map<String, Object> parsed);
+    Map<I18nKey, String> parseKeys(I18nPathPattern pathPattern, File file, Map<String, Object> parsed);
 }

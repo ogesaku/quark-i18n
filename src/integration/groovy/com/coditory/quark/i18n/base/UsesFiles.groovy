@@ -28,6 +28,13 @@ trait UsesFiles {
     File writeClasspathFile(String fileName, String content) {
         File file = writeFile(fileName, content)
         classLoader.add(fileName, file)
+        File parent = file.parentFile
+        Path parentPath = Path.of(fileName).parent
+        while (parent != tempDirectory && !parentPath.isEmpty()) {
+            classLoader.add(parentPath.toString(), parent)
+            parent = parent.parentFile
+            parentPath = parentPath.parent
+        }
         return file
     }
 

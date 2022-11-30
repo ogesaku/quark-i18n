@@ -2,6 +2,7 @@ package com.coditory.quark.i18n.loader;
 
 import com.coditory.quark.i18n.I18nKey;
 import com.coditory.quark.i18n.I18nPath;
+import com.coditory.quark.i18n.loader.FileScanner.FileScannerBuilder;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 public class I18nMessagesFileLoader implements I18nMessagesLoader {
-    private final List<PathTemplate> locations;
+    private final List<I18nPathPattern> pathPatterns;
     private final ClassLoader classLoader;
     private final I18nParser fileParser;
     private final Map<String, I18nParser> fileParsersByExtension;
@@ -23,7 +24,7 @@ public class I18nMessagesFileLoader implements I18nMessagesLoader {
     private final I18nPath staticPrefix;
 
     I18nMessagesFileLoader(
-            List<PathTemplate> locations,
+            List<I18nPathPattern> pathPatterns,
             ClassLoader classLoader,
             I18nParser fileParser,
             Map<String, I18nParser> fileParsersByExtension,
@@ -31,7 +32,7 @@ public class I18nMessagesFileLoader implements I18nMessagesLoader {
             I18nKeyParser keyParser,
             Map<String, I18nKeyParser> keyParsersByExtension
     ) {
-        this.locations = List.copyOf(locations);
+        this.pathPatterns = List.copyOf(pathPatterns);
         this.classLoader = classLoader;
         this.fileParser = fileParser;
         this.fileParsersByExtension = Map.copyOf(fileParsersByExtension);
@@ -43,7 +44,7 @@ public class I18nMessagesFileLoader implements I18nMessagesLoader {
     @Override
     public Map<I18nKey, String> load() {
         Map<I18nKey, String> result = new LinkedHashMap<>();
-        for (PathTemplate location : locations) {
+        for (I18nPathPattern location : pathPatterns) {
             List<File> files = scanFiles(location);
             for (File file : files) {
                 Map<I18nKey, String> fileResult = load(location, file);
@@ -53,14 +54,18 @@ public class I18nMessagesFileLoader implements I18nMessagesLoader {
         return result;
     }
 
-    private List<File> scanFiles(PathTemplate location) {
-        FileScanner fileScanner = classLoader != null
-                ? FileScanner.scanClassPath(classLoader, location.original())
-                : FileScanner.scanFiles(location.original());
-        return fileScanner.toList();
+    private List<File> scanFiles(I18nPathPattern pathPattern) {
+        FileScannerBuilder builder = FileScanner.builder()
+                .scanLocation(pathPattern.getBaseDirectory())
+                .filter(pathPattern.getPattern().asMatchPredicate());
+        if (classLoader != null) {
+            builder.scanClassPath(classLoader);
+        }
+        return builder.build()
+                .toList();
     }
 
-    private Map<I18nKey, String> load(PathTemplate pathTemplate, File file) {
+    private Map<I18nKey, String> load(I18nPathPattern pathTemplate, File file) {
         Map<String, Object> parsed = parseFile(file);
         return parseKeys(pathTemplate, file, parsed);
     }
@@ -72,7 +77,11 @@ public class I18nMessagesFileLoader implements I18nMessagesLoader {
             throw new I18nParseException("No file parser defined for: " + file.getAbsolutePath());
         }
         String content = readFile(file);
-        return parser.parse(content);
+        try {
+            return parser.parse(content);
+        } catch (Throwable e) {
+            throw new I18nParseException("Could not parse file content: " + file.getAbsolutePath(), e);
+        }
     }
 
     private String getExtension(File file) {
@@ -83,7 +92,7 @@ public class I18nMessagesFileLoader implements I18nMessagesLoader {
                 : name.substring(idx + 1);
     }
 
-    private Map<I18nKey, String> parseKeys(PathTemplate pathTemplate, File file, Map<String, Object> parsed) {
+    private Map<I18nKey, String> parseKeys(I18nPathPattern pathTemplate, File file, Map<String, Object> parsed) {
         String extension = getExtension(file);
         I18nKeyParser parser = keyParsersByExtension.getOrDefault(extension, keyParser);
         if (parser == null) {

@@ -10,11 +10,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Queue;
 import java.util.Spliterator;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -113,7 +111,6 @@ final class FileScanner implements Iterator<File> {
     public static class FileScannerBuilder {
         private final List<String> locations = new ArrayList<>();
         private final List<Predicate<String>> filters = new ArrayList<>();
-        private boolean combineFiltersWithOr = true;
         private ClassLoader classLoader;
 
         public FileScannerBuilder scanClassPath() {
@@ -125,23 +122,16 @@ final class FileScanner implements Iterator<File> {
             return this;
         }
 
-        public FileScannerBuilder scanLocations(List<String> patterns) {
-            requireNonNull(patterns);
-            patterns.forEach(this::scanLocation);
+        public FileScannerBuilder scanLocations(List<String> paths) {
+            requireNonNull(paths);
+            paths.forEach(this::scanLocation);
             return this;
         }
 
-        public FileScannerBuilder scanLocation(String pattern) {
-            requireNonNull(pattern);
-            if (pattern.contains("\\")) {
-                throw new IllegalArgumentException("Expected only forward slashes");
-            }
-            String dir = SimpleFilePattern.extractBaseDir(pattern);
-            if (!dir.isBlank()) {
-                locations.add(dir);
-            }
-            if (!Objects.equals(dir, pattern)) {
-                filter(pattern);
+        public FileScannerBuilder scanLocation(String path) {
+            requireNonNull(path);
+            if (!path.isBlank()) {
+                locations.add(path);
             }
             return this;
         }
@@ -157,41 +147,8 @@ final class FileScanner implements Iterator<File> {
 
         private String normalizePath(String path) {
             return File.separatorChar == '\\'
-                    ? path.replace("\\", "/")
+                    ? path.replaceAll("\\\\", "/")
                     : path;
-        }
-
-        public FileScannerBuilder filter(List<String> patterns) {
-            requireNonNull(patterns);
-            patterns.forEach(this::filter);
-            return this;
-        }
-
-        public FileScannerBuilder filter(String pattern) {
-            requireNonNull(pattern);
-            if (pattern.contains("\\")) {
-                throw new IllegalArgumentException("Expected unix file separators");
-            }
-            Predicate<String> predicate = SimpleFilePattern.compile(pattern, '/')
-                    .asMatchPredicate();
-            return filter(predicate);
-        }
-
-        public FileScannerBuilder filterWithRegex(String regex) {
-            requireNonNull(regex);
-            Pattern pattern = Pattern.compile(regex);
-            return filterWithRegex(pattern);
-        }
-
-        public FileScannerBuilder filterWithRegex(Pattern pattern) {
-            requireNonNull(pattern);
-            Predicate<String> namePredicate = pattern.asMatchPredicate();
-            return filter(namePredicate);
-        }
-
-        public FileScannerBuilder combineFiltersWithAnd() {
-            combineFiltersWithOr = false;
-            return this;
         }
 
         public FileScanner build() {
@@ -220,7 +177,7 @@ final class FileScanner implements Iterator<File> {
 
         private Predicate<File> aggregateFilters() {
             Predicate<String> aggregated = filters.stream()
-                    .reduce(f -> true, (a, c) -> combineFiltersWithOr ? c.or(a) : c.and(a));
+                    .reduce(f -> true, (a, c) -> c.or(a));
             return (file) -> aggregated.test(normalizePath(file.getAbsolutePath()));
         }
 
