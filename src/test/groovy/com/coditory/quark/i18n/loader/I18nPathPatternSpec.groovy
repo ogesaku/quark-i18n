@@ -5,6 +5,10 @@ import com.coditory.quark.i18n.Locales
 import spock.lang.Specification
 import spock.lang.Unroll
 
+import static com.coditory.quark.i18n.Locales.EN
+import static com.coditory.quark.i18n.Locales.EN_GB
+import static com.coditory.quark.i18n.Locales.EN_US
+import static com.coditory.quark.i18n.Locales.PL_PL
 import static com.coditory.quark.i18n.loader.I18nPathPattern.I18nPathGroups
 import static com.coditory.quark.i18n.loader.I18nPathPattern.of
 
@@ -107,8 +111,8 @@ class I18nPathPatternSpec extends Specification {
             matched.path() == path
         where:
             pattern                         | input                          || locale        | path
-            "**/i18n-{prefix}-{locale}.yml" | "/abc/i18n-homepage-pl-PL.yml" || Locales.PL_PL | I18nPath.of("homepage")
-            "{prefixes}/i18n-{locale}.yml"  | "/abc/i18n-pl-PL.yml"          || Locales.PL_PL | I18nPath.of("abc")
+            "**/i18n-{prefix}-{locale}.yml" | "/abc/i18n-homepage-pl-PL.yml" || PL_PL | I18nPath.of("homepage")
+            "{prefixes}/i18n-{locale}.yml"  | "/abc/i18n-pl-PL.yml"          || PL_PL | I18nPath.of("abc")
     }
 
     @Unroll
@@ -119,11 +123,12 @@ class I18nPathPatternSpec extends Specification {
             matched.locale() == locale
         where:
             pattern                     | input            || locale
-            "i18n_{locale}.yml"         | "i18n_en-US.yml" || Locales.EN_US
-            "{locale}/i18n.yml"         | "en-US/i18n.yml" || Locales.EN_US
-            "i18n_{lang}-{country}.yml" | "i18n_en-US.yml" || Locales.EN_US
-            "{lang}/{country}/i18n.yml" | "en/GB/i18n.yml" || Locales.EN_GB
-            "{lang}/*/i18n.yml"         | "en/GB/i18n.yml" || Locales.EN
+            "i18n_{locale}.yml"         | "i18n_en.yml"    || EN
+            "i18n_{locale}.yml"         | "i18n_en-US.yml" || EN_US
+            "{locale}/i18n.yml"         | "en-US/i18n.yml" || EN_US
+            "i18n_{lang}-{country}.yml" | "i18n_en-US.yml" || EN_US
+            "{lang}/{country}/i18n.yml" | "en/GB/i18n.yml" || EN_GB
+            "{lang}/*/i18n.yml"         | "en/GB/i18n.yml" || EN
     }
 
     @Unroll

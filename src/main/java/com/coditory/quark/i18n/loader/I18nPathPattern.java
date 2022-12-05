@@ -33,6 +33,10 @@ final class I18nPathPattern {
     private static final List<String> MARKERS = List.of(PREFIXES_GROUP_MARKER, PREFIX_GROUP_MARKER, LOCALE_GROUP_MARKER, LANG_GROUP_MARKER, COUNTRY_GROUP_MARKER);
 
     public static I18nPathPattern of(String pathPattern) {
+        return of(pathPattern, null);
+    }
+
+    static I18nPathPattern of(String pathPattern, String baseDirectory) {
         validate(pathPattern);
         String patternString = pathPattern
                 .replace(".", "\\.")
@@ -43,13 +47,12 @@ final class I18nPathPattern {
                 .replace(PREFIX_GROUP_MARKER, "(?<prefix>[a-zA-Z0-9-_.]+)")
                 .replace(LANG_GROUP_MARKER, "(?<lang>[a-z]{2})")
                 .replace(COUNTRY_GROUP_MARKER, "(?<country>[A-Z]{2})")
-                .replace(LOCALE_GROUP_MARKER, "(?<lang>[a-z]{2})(-(?<country>[A-Z]{2})?)");
+                .replace(LOCALE_GROUP_MARKER, "(?<lang>[a-z]{2})(-(?<country>[A-Z]{2}))?");
         if (pathPattern.startsWith("**") || pathPattern.startsWith(PREFIXES_GROUP_MARKER)) {
             patternString = "/?" + patternString;
         }
-        System.out.println("PATTERN: " + pathPattern + "  " + patternString);
         Pattern pattern = Pattern.compile(patternString);
-        String directory = extractBaseDir(pathPattern);
+        String directory = baseDirectory == null ? extractBaseDir(pathPattern) : baseDirectory;
         return new I18nPathPattern(pathPattern, pattern, directory);
     }
 
@@ -66,7 +69,7 @@ final class I18nPathPattern {
         return pathPattern.substring(0, dirEnd);
     }
 
-    boolean hasLangGroup() {
+    boolean hasLanguageGroup() {
         return activeGroups.containsKey(LANG_GROUP_MARKER) || activeGroups.containsKey(LOCALE_GROUP_MARKER);
     }
 
@@ -106,10 +109,6 @@ final class I18nPathPattern {
         return pattern.asMatchPredicate().test(normalized);
     }
 
-    public I18nPathGroups matchGroups(File file) {
-        return matchGroups(file.getAbsolutePath());
-    }
-
     public I18nPathGroups matchGroups(String path) {
         if (activeGroups.isEmpty()) {
             return new I18nPathGroups(null, null);
@@ -120,14 +119,15 @@ final class I18nPathPattern {
             return new I18nPathGroups(null, null);
         }
         Locale locale = extractLocale(matcher);
-        I18nPath i18nPath = extractPrefix(matcher);
+        I18nPath i18nPath = extractPath(matcher);
         return new I18nPathGroups(locale, i18nPath);
     }
 
     private String normalizePath(String path) {
-        return File.separatorChar == '\\'
+        String winFix = File.separatorChar == '\\'
                 ? path.replace("\\", "/")
                 : path;
+        return winFix.replaceAll("//", "/");
     }
 
     private Locale extractLocale(Matcher matcher) {
@@ -147,7 +147,7 @@ final class I18nPathPattern {
         return Locales.parseLocale(tag);
     }
 
-    private I18nPath extractPrefix(Matcher matcher) {
+    private I18nPath extractPath(Matcher matcher) {
         String prefix = null;
         if (activeGroups.containsKey(PREFIXES_GROUP_MARKER)) {
             String prefixesMatch = matcher.group("prefixes");
@@ -211,6 +211,12 @@ final class I18nPathPattern {
         }
         if (count(pathPattern, "**") != count(pathPattern, "**/")) {
             throw new IllegalArgumentException("Dir placeholder (**) should be followed by '/'. Path: " + pathPattern);
+        }
+        if (pathPattern.contains("./")) {
+            throw new IllegalArgumentException("Unexpected './'. Path: " + pathPattern);
+        }
+        if (pathPattern.contains("../")) {
+            throw new IllegalArgumentException("Unexpected '../'. Path: " + pathPattern);
         }
         if (count(pathPattern, "{") != count(pathPattern, "}")) {
             throw new IllegalArgumentException("Found unmatched brace in path: " + pathPattern);

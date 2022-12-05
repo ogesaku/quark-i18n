@@ -1,4 +1,4 @@
-package com.coditory.quark.i18n.loader;
+package com.coditory.quark.i18n.parser;
 
 import com.coditory.quark.i18n.I18nMessagesException;
 

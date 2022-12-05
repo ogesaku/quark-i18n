@@ -1,6 +1,5 @@
 package com.coditory.quark.i18n;
 
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
@@ -45,6 +44,12 @@ public record I18nKey(Locale locale, I18nPath path) {
     }
 
     @NotNull
+    public I18nKey withPath(@NotNull String path) {
+        expectNonNull(path, "path");
+        return withPath(I18nPath.of(path));
+    }
+
+    @NotNull
     public I18nKey withPath(@NotNull I18nPath path) {
         expectNonNull(path, "path");
         return Objects.equals(this.path, path)
@@ -53,7 +58,13 @@ public record I18nKey(Locale locale, I18nPath path) {
     }
 
     @NotNull
-    public I18nKey prefix(@NotNull I18nPath path) {
+    public I18nKey prefixPath(@NotNull String path) {
+        expectNonNull(path, "path");
+        return prefixPath(I18nPath.of(path));
+    }
+
+    @NotNull
+    public I18nKey prefixPath(@NotNull I18nPath path) {
         expectNonNull(path, "path");
         return new I18nKey(locale, path.child(this.path));
     }
@@ -64,8 +75,8 @@ public record I18nKey(Locale locale, I18nPath path) {
         return new I18nKey(locale, path.child(segment));
     }
 
-    public String getPathValue() {
-        return path.getPathValue();
+    public String pathValue() {
+        return path.getValue();
     }
 
     public String toShortString() {

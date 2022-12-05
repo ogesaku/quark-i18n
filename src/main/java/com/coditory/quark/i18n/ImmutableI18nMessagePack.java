@@ -6,10 +6,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 
 import static com.coditory.quark.i18n.Preconditions.expectNonBlank;
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
+import static java.util.stream.Collectors.toMap;
 
 final class ImmutableI18nMessagePack implements I18nMessagePack {
     private final Map<I18nKey, MessageTemplate> templates;

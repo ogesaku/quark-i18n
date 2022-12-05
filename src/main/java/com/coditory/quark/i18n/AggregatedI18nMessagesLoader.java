@@ -7,22 +7,28 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 final class AggregatedI18nMessagesLoader implements I18nMessagesLoader {
     private final List<I18nMessagesLoader> loaders = new ArrayList<>();
     private final Map<I18nKey, String> currentEntries = new LinkedHashMap<>();
 
     public void addLoader(I18nMessagesLoader loader) {
-        Objects.requireNonNull(loader);
+        requireNonNull(loader);
         appendCurrentEntries();
         loaders.add(loader);
     }
 
     public void addMessage(I18nKey key, String value) {
-        Objects.requireNonNull(key);
-        Objects.requireNonNull(value);
+        requireNonNull(key);
+        requireNonNull(value);
         currentEntries.put(key, value);
+    }
+
+    public void addMessages(Map<I18nKey, String> messages) {
+        requireNonNull(messages);
+        currentEntries.putAll(messages);
     }
 
     public AggregatedI18nMessagesLoader copy() {

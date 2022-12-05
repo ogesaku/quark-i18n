@@ -2,128 +2,143 @@ package com.coditory.quark.i18n.loader;
 
 import com.coditory.quark.i18n.I18nKey;
 import com.coditory.quark.i18n.I18nPath;
-import com.coditory.quark.i18n.loader.FileScanner.FileScannerBuilder;
+import com.coditory.quark.i18n.loader.I18nPathPattern.I18nPathGroups;
+import com.coditory.quark.i18n.parser.I18nParser;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 public class I18nMessagesFileLoader implements I18nMessagesLoader {
-    private final List<I18nPathPattern> pathPatterns;
+    @NotNull
+    public static I18nMessagesFileLoader scanClassPath(@NotNull String firstPattern, String... others) {
+        requireNonNull(firstPattern);
+        return scanClassPath(Thread.currentThread().getContextClassLoader(), firstPattern, others);
+    }
+
+    @NotNull
+    public static I18nMessagesFileLoader scanClassPath(@NotNull ClassLoader classLoader, @NotNull String firstPattern, String... others) {
+        requireNonNull(firstPattern);
+        requireNonNull(classLoader);
+        I18nMessagesFileLoaderBuilder builder = I18nMessagesFileLoader.builder()
+                .classLoader(classLoader)
+                .scanPathPattern(firstPattern);
+        for (String other : others) {
+            builder.scanPathPattern(other);
+        }
+        return builder.build();
+    }
+
+    @NotNull
+    public static I18nMessagesFileLoader scanFileSystem(@NotNull String firstPattern, String... others) {
+        requireNonNull(firstPattern);
+        return scanFileSystem(FileSystems.getDefault(), firstPattern, others);
+    }
+
+    @NotNull
+    public static I18nMessagesFileLoader scanFileSystem(@NotNull FileSystem fileSystem, @NotNull String firstPattern, String... others) {
+        requireNonNull(firstPattern);
+        requireNonNull(fileSystem);
+        I18nMessagesFileLoaderBuilder builder = I18nMessagesFileLoader.builder()
+                .scanFileSystem(fileSystem)
+                .scanPathPattern(firstPattern);
+        for (String other : others) {
+            builder.scanPathPattern(other);
+        }
+        return builder.build();
+    }
+
+    private final Set<I18nPathPattern> pathPatterns;
     private final ClassLoader classLoader;
-    private final I18nParser fileParser;
-    private final Map<String, I18nParser> fileParsersByExtension;
-    private final I18nKeyParser keyParser;
-    private final Map<String, I18nKeyParser> keyParsersByExtension;
+    private final I18nParser parser;
+    private final Map<String, I18nParser> parsersByExtension;
     private final I18nPath staticPrefix;
+    private final FileSystem fileSystem;
 
     I18nMessagesFileLoader(
-            List<I18nPathPattern> pathPatterns,
+            Set<I18nPathPattern> pathPatterns,
+            FileSystem fileSystem,
             ClassLoader classLoader,
             I18nParser fileParser,
-            Map<String, I18nParser> fileParsersByExtension,
-            I18nPath staticPrefix,
-            I18nKeyParser keyParser,
-            Map<String, I18nKeyParser> keyParsersByExtension
+            Map<String, I18nParser> parsersByExtension,
+            I18nPath staticPrefix
     ) {
-        this.pathPatterns = List.copyOf(pathPatterns);
         this.classLoader = classLoader;
-        this.fileParser = fileParser;
-        this.fileParsersByExtension = Map.copyOf(fileParsersByExtension);
-        this.staticPrefix = staticPrefix;
-        this.keyParser = keyParser;
-        this.keyParsersByExtension = Map.copyOf(keyParsersByExtension);
+        this.staticPrefix = requireNonNull(staticPrefix);
+        this.fileSystem = requireNonNull(fileSystem);
+        this.pathPatterns = Set.copyOf(pathPatterns);
+        this.parsersByExtension = Map.copyOf(parsersByExtension);
+        this.parser = fileParser;
     }
 
     @Override
     public Map<I18nKey, String> load() {
         Map<I18nKey, String> result = new LinkedHashMap<>();
-        for (I18nPathPattern location : pathPatterns) {
-            List<File> files = scanFiles(location);
-            for (File file : files) {
-                Map<I18nKey, String> fileResult = load(location, file);
-                result.putAll(fileResult);
+        for (I18nPathPattern pathPattern : pathPatterns) {
+            List<Resource> resources = scanFiles(pathPattern);
+            for (Resource resource : resources) {
+                System.out.println("Resource: " + resource);
+                Map<I18nKey, String> parsed = parseFile(resource, pathPattern);
+                result.putAll(parsed);
             }
         }
         return result;
     }
 
-    private List<File> scanFiles(I18nPathPattern pathPattern) {
-        FileScannerBuilder builder = FileScanner.builder()
-                .scanLocation(pathPattern.getBaseDirectory())
-                .filter(pathPattern.getPattern().asMatchPredicate());
-        if (classLoader != null) {
-            builder.scanClassPath(classLoader);
-        }
-        return builder.build()
-                .toList();
+    private List<Resource> scanFiles(I18nPathPattern pathPattern) {
+        return classLoader != null
+                ? ResourceScanner.scanClassPath(classLoader, pathPattern)
+                : ResourceScanner.scanFiles(fileSystem, pathPattern);
     }
 
-    private Map<I18nKey, String> load(I18nPathPattern pathTemplate, File file) {
-        Map<String, Object> parsed = parseFile(file);
-        return parseKeys(pathTemplate, file, parsed);
-    }
-
-    private Map<String, Object> parseFile(File file) {
-        String extension = getExtension(file);
-        I18nParser parser = fileParsersByExtension.getOrDefault(extension, fileParser);
+    private Map<I18nKey, String> parseFile(Resource resource, I18nPathPattern pathPattern) {
+        String extension = getExtension(resource.name());
+        I18nParser parser = parsersByExtension.getOrDefault(extension, this.parser);
         if (parser == null) {
-            throw new I18nParseException("No file parser defined for: " + file.getAbsolutePath());
+            throw new I18nLoadException("No file parser defined for: " + resource.name());
         }
-        String content = readFile(file);
+        String content = readFile(resource);
+        I18nPathGroups matchedGroups = pathPattern.matchGroups(resource.name());
+        Locale locale = matchedGroups.locale();
+        I18nPath prefix = matchedGroups.path() == null
+                ? staticPrefix
+                : staticPrefix.child(matchedGroups.path());
         try {
-            return parser.parse(content);
+            return parser.parse(content, prefix, locale);
         } catch (Throwable e) {
-            throw new I18nParseException("Could not parse file content: " + file.getAbsolutePath(), e);
+            throw new I18nLoadException("Could not parse file: " + resource.name(), e);
         }
     }
 
-    private String getExtension(File file) {
-        String name = file.getName();
-        int idx = name.lastIndexOf('.');
-        return idx == 0 || idx == name.length() - 1
-                ? null
-                : name.substring(idx + 1);
-    }
-
-    private Map<I18nKey, String> parseKeys(I18nPathPattern pathTemplate, File file, Map<String, Object> parsed) {
-        String extension = getExtension(file);
-        I18nKeyParser parser = keyParsersByExtension.getOrDefault(extension, keyParser);
-        if (parser == null) {
-            throw new I18nParseException("No key parser defined for: " + file.getAbsolutePath());
-        }
-        Map<I18nKey, String> result = parser.parseKeys(pathTemplate, file, parsed);
-        if (staticPrefix != null) {
-            Map<I18nKey, String> prefixed = new LinkedHashMap<>();
-            for (Map.Entry<I18nKey, String> entry : result.entrySet()) {
-                I18nKey path = entry.getKey().prefix(staticPrefix);
-                prefixed.put(path, entry.getValue());
-            }
-            result = prefixed;
-        }
-        return result;
-    }
-
-    private String readFile(File file) {
+    private String readFile(Resource resource) {
         try {
-            InputStream inputStream = new FileInputStream(file);
             StringBuilder resultStringBuilder = new StringBuilder();
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(resource.url().openStream()))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     resultStringBuilder.append(line).append("\n");
                 }
             }
             return resultStringBuilder.toString();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Throwable e) {
+            throw new RuntimeException("Could not read classpath resource: " + resource.name(), e);
         }
+    }
+
+    private String getExtension(String resourceName) {
+        int idx = resourceName.lastIndexOf('.');
+        return idx == 0 || idx == resourceName.length() - 1
+                ? null
+                : resourceName.substring(idx + 1);
     }
 
     public static I18nMessagesFileLoaderBuilder builder() {

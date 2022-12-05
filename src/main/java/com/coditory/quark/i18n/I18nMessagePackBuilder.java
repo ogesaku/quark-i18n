@@ -7,9 +7,11 @@ import com.coditory.quark.i18n.formatter.MoneyI18NFormatterProvider;
 import com.coditory.quark.i18n.formatter.NumberI18NFormatterProvider;
 import com.coditory.quark.i18n.formatter.PluralI18NFormatterProvider;
 import com.coditory.quark.i18n.formatter.TimeI18NFormatterProvider;
+import com.coditory.quark.i18n.loader.I18nMessagesFileLoader;
 import com.coditory.quark.i18n.loader.I18nMessagesLoader;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.file.FileSystem;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,6 +61,38 @@ public final class I18nMessagePackBuilder {
     }
 
     @NotNull
+    public I18nMessagePackBuilder scanFileSystem(@NotNull String firstPattern, String... others) {
+        expectNonBlank(firstPattern, "firstPattern");
+        I18nMessagesLoader loader = I18nMessagesFileLoader.scanFileSystem(firstPattern, others);
+        this.loader.addLoader(loader);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder scanFileSystem(@NotNull FileSystem fileSystem, @NotNull String firstPattern, String... others) {
+        expectNonBlank(firstPattern, "firstPattern");
+        expectNonNull(fileSystem, "fileSystem");
+        I18nMessagesLoader loader = I18nMessagesFileLoader.scanFileSystem(fileSystem, firstPattern, others);
+        this.loader.addLoader(loader);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder scanClassPath(@NotNull String firstPattern, String... others) {
+        expectNonBlank(firstPattern, "firstPattern");
+        return scanClassPath(Thread.currentThread().getContextClassLoader(), firstPattern, others);
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder scanClassPath(@NotNull ClassLoader classLoader, @NotNull String firstPattern, String... others) {
+        expectNonBlank(firstPattern, "firstPattern");
+        expectNonNull(classLoader, "classLoader");
+        I18nMessagesLoader loader = I18nMessagesFileLoader.scanClassPath(classLoader, firstPattern, others);
+        this.loader.addLoader(loader);
+        return this;
+    }
+
+    @NotNull
     public I18nMessagePackBuilder addLoader(@NotNull I18nMessagesLoader loader) {
         expectNonNull(loader, "loader");
         this.loader.addLoader(loader);
@@ -86,6 +120,13 @@ public final class I18nMessagePackBuilder {
         expectNonNull(key, "key");
         expectNonBlank(template, "template");
         this.loader.addMessage(key, template);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder addMessages(@NotNull Map<I18nKey, String> messages) {
+        expectNonNull(messages, "messages");
+        this.loader.addMessages(messages);
         return this;
     }
 

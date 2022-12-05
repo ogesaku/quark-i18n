@@ -3,6 +3,7 @@ package com.coditory.quark.i18n;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
