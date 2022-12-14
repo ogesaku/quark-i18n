@@ -3,7 +3,6 @@ package readme;
 import com.coditory.quark.i18n.I18nMessagePack;
 import com.coditory.quark.i18n.I18nMessages;
 import com.coditory.quark.i18n.Reloadable18nMessagePack;
-import com.coditory.quark.i18n.loader.I18nMessagesFileLoader;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,14 +18,6 @@ public class Sample01 {
         System.out.println("DOT   resource: " + classLoader.getResource("."));
         System.out.println("SLASH resource: " + classLoader.getResource("/"));
 
-        I18nMessagesFileLoader pageI18nLoader = I18nMessagesFileLoader.builder()
-                .scanPathPattern("/**/{prefix}/i18n.yml")
-                .build();
-        System.out.println("PAGE: \n" + pageI18nLoader.load());
-        I18nMessagesFileLoader baseI18nLoader = I18nMessagesFileLoader.builder()
-                .scanPathPattern("/i18n/*")
-                .build();
-        System.out.println("BASE: \n" + baseI18nLoader.load());
         Reloadable18nMessagePack i18nMessagePack = I18nMessagePack.builder()
                 .scanClassPath("/**/{prefix}/i18n.yml")
                 .scanClassPath("/i18n/*")

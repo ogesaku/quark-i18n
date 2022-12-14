@@ -7,8 +7,8 @@ import com.coditory.quark.i18n.formatter.MoneyI18NFormatterProvider;
 import com.coditory.quark.i18n.formatter.NumberI18NFormatterProvider;
 import com.coditory.quark.i18n.formatter.PluralI18NFormatterProvider;
 import com.coditory.quark.i18n.formatter.TimeI18NFormatterProvider;
-import com.coditory.quark.i18n.loader.I18nMessagesFileLoader;
-import com.coditory.quark.i18n.loader.I18nMessagesLoader;
+import com.coditory.quark.i18n.loader.I18nFileLoaderFactory;
+import com.coditory.quark.i18n.loader.I18nLoader;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.FileSystem;
@@ -41,7 +41,7 @@ public final class I18nMessagePackBuilder {
     );
     private final Map<Class<?>, I18nFormatterProvider> typeFormatters = new HashMap<>(DEFAULT_TYPE_FORMATTERS);
     private final Map<String, I18nFormatterProvider> namedFormatters = new HashMap<>(DEFAULT_NAMED_FORMATTERS);
-    private final AggregatedI18nMessagesLoader loader = new AggregatedI18nMessagesLoader();
+    private final AggregatedI18nLoader loader = new AggregatedI18nLoader();
     private final List<I18nPath> prefixes = new ArrayList<>();
     private I18nKeyGenerator keyGenerator = relaxedI18nKeyGenerator();
     private I18nUnresolvedMessageHandler unresolvedMessageHandler = I18nUnresolvedMessageHandler.throwError();
@@ -63,7 +63,7 @@ public final class I18nMessagePackBuilder {
     @NotNull
     public I18nMessagePackBuilder scanFileSystem(@NotNull String firstPattern, String... others) {
         expectNonBlank(firstPattern, "firstPattern");
-        I18nMessagesLoader loader = I18nMessagesFileLoader.scanFileSystem(firstPattern, others);
+        I18nLoader loader = I18nFileLoaderFactory.scanFileSystem(firstPattern, others);
         this.loader.addLoader(loader);
         return this;
     }
@@ -72,7 +72,7 @@ public final class I18nMessagePackBuilder {
     public I18nMessagePackBuilder scanFileSystem(@NotNull FileSystem fileSystem, @NotNull String firstPattern, String... others) {
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(fileSystem, "fileSystem");
-        I18nMessagesLoader loader = I18nMessagesFileLoader.scanFileSystem(fileSystem, firstPattern, others);
+        I18nLoader loader = I18nFileLoaderFactory.scanFileSystem(fileSystem, firstPattern, others);
         this.loader.addLoader(loader);
         return this;
     }
@@ -87,13 +87,13 @@ public final class I18nMessagePackBuilder {
     public I18nMessagePackBuilder scanClassPath(@NotNull ClassLoader classLoader, @NotNull String firstPattern, String... others) {
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(classLoader, "classLoader");
-        I18nMessagesLoader loader = I18nMessagesFileLoader.scanClassPath(classLoader, firstPattern, others);
+        I18nLoader loader = I18nFileLoaderFactory.scanClassPath(classLoader, firstPattern, others);
         this.loader.addLoader(loader);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder addLoader(@NotNull I18nMessagesLoader loader) {
+    public I18nMessagePackBuilder addLoader(@NotNull I18nLoader loader) {
         expectNonNull(loader, "loader");
         this.loader.addLoader(loader);
         return this;
@@ -195,6 +195,17 @@ public final class I18nMessagePackBuilder {
     @NotNull
     public I18nMessagePack build() {
         Map<I18nKey, String> entries = loader.load();
+        return build(entries);
+    }
+
+    @NotNull
+    public Reloadable18nMessagePack buildReloadable() {
+        I18nMessagePackBuilder copy = this.copy();
+        AggregatedI18nLoader loader = copy.loader;
+        return new Reloadable18nMessagePack(loader, copy::build);
+    }
+
+    private I18nMessagePack build(Map<I18nKey, String> entries) {
         I18nMessageTemplatesPack templatePack = new I18nMessageTemplatesPack(entries, keyGenerator);
         MessageTemplateParser parser = new MessageTemplateParser(templatePack, this.namedFormatters, this.typeFormatters);
         Map<I18nKey, MessageTemplate> templates = parseTemplates(templatePack, parser);
@@ -202,9 +213,10 @@ public final class I18nMessagePackBuilder {
     }
 
     @NotNull
-    public Reloadable18nMessagePack buildReloadable() {
-        I18nMessagePackBuilder copy = this.copy();
-        return new Reloadable18nMessagePack(copy::build);
+    public Reloadable18nMessagePack buildAndWatchForChanges() {
+        Reloadable18nMessagePack messagePack = buildReloadable();
+        messagePack.startWatching();
+        return messagePack;
     }
 
     private Map<I18nKey, MessageTemplate> parseTemplates(I18nMessageTemplatesPack messages, MessageTemplateParser parser) {

@@ -4,22 +4,38 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 
 public final class Reloadable18nMessagePack implements I18nMessagePack {
-    private final Supplier<I18nMessagePack> i18nMessagePackSupplier;
+    private final Function<Map<I18nKey, String>, I18nMessagePack> i18nMessagePackCreator;
+    private final AggregatedI18nLoader loader;
     private volatile I18nMessagePack i18nMessagePack;
 
-    Reloadable18nMessagePack(Supplier<I18nMessagePack> i18nMessagePackSupplier) {
-        expectNonNull(i18nMessagePackSupplier, "i18nMessagePackSupplier");
-        this.i18nMessagePackSupplier = i18nMessagePackSupplier;
-        this.i18nMessagePack = i18nMessagePackSupplier.get();
+    Reloadable18nMessagePack(AggregatedI18nLoader loader, Function<Map<I18nKey, String>, I18nMessagePack> i18nMessagePackCreator) {
+        expectNonNull(i18nMessagePackCreator, "i18nMessagePackCreator");
+        expectNonNull(loader, "loader");
+        this.i18nMessagePackCreator = i18nMessagePackCreator;
+        this.loader = loader;
+        reload();
     }
 
     public void reload() {
-        this.i18nMessagePack = i18nMessagePackSupplier.get();
+        reload(loader.load());
+    }
+
+    private void reload(Map<I18nKey, String> entries) {
+        this.i18nMessagePack = i18nMessagePackCreator.apply(entries);
+    }
+
+    public synchronized void startWatching() {
+        loader.startWatching(this::reload);
+    }
+
+    public synchronized void stopWatching() {
+        loader.stopWatching();
     }
 
     @Override

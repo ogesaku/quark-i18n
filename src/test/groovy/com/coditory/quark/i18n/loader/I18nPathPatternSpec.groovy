@@ -1,7 +1,6 @@
 package com.coditory.quark.i18n.loader
 
 import com.coditory.quark.i18n.I18nPath
-import com.coditory.quark.i18n.Locales
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -83,7 +82,7 @@ class I18nPathPatternSpec extends Specification {
             e.message.startsWith(message)
         where:
             pattern                      || message
-            "/ab**c"                     || "Dir placeholder (**) should be followed by '/'"
+            "/ab**c"                     || "Invalid dir placeholder (**)"
             "/ab{prefixes}c"             || "Prefixes group (\"{prefixes}\") should be followed by a '/'"
             "/abc/"                      || "Expected path to not end with /"
             "/abc\\xxx.json"             || "Expected unix file separators"
@@ -110,9 +109,9 @@ class I18nPathPatternSpec extends Specification {
             matched.locale() == locale
             matched.path() == path
         where:
-            pattern                         | input                          || locale        | path
-            "**/i18n-{prefix}-{locale}.yml" | "/abc/i18n-homepage-pl-PL.yml" || PL_PL | I18nPath.of("homepage")
-            "{prefixes}/i18n-{locale}.yml"  | "/abc/i18n-pl-PL.yml"          || PL_PL | I18nPath.of("abc")
+            pattern                         | input                          || locale | path
+            "**/i18n-{prefix}-{locale}.yml" | "/abc/i18n-homepage-pl-PL.yml" || PL_PL  | I18nPath.of("homepage")
+            "{prefixes}/i18n-{locale}.yml"  | "/abc/i18n-pl-PL.yml"          || PL_PL  | I18nPath.of("abc")
     }
 
     @Unroll
@@ -162,7 +161,6 @@ class I18nPathPatternSpec extends Specification {
             "com/i18n/{prefixes}/*/i18n.yml" || "com/i18n"
             "com/i18n/*/{prefixes}/i18n.yml" || "com/i18n"
             "/com/i18n/**/i18n.yml"          || "/com/i18n"
-            "/com/i18n/abc-**/i18n.yml"      || "/com/i18n"
             "/com/i18n/*/i18n.yml"           || "/com/i18n"
             "/com/i18n/abc-*/i18n.yml"       || "/com/i18n"
     }

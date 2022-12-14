@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Map;
 
 @FunctionalInterface
-public interface I18nMessagesLoader {
+public interface I18nLoader {
     @NotNull
     Map<I18nKey, String> load();
 }

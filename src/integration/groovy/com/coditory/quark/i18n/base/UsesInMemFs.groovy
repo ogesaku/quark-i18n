@@ -14,10 +14,14 @@ import java.nio.file.Path
 trait UsesInMemFs {
     private FileSystem inMemFs = Jimfs.newFileSystem(Configuration.unix())
 
+    FileSystem getInMemFs() {
+        return inMemFs
+    }
+
     void writeInMemFsFile(String fileName, String content) {
         setupInMemFs()
         Path path = inMemFs.getPath(fileName)
-        println "Writing in-mem file: " + path.isAbsolute() + " " + path.toAbsolutePath()
+        println "Writing in-mem file: " + path.toAbsolutePath()
         if (!Files.exists(path.parent)) {
             Files.createDirectories(path.parent)
         }
@@ -25,9 +29,37 @@ trait UsesInMemFs {
         Files.writeString(path, trimmed)
     }
 
+    void deleteInMemFile(String fileName) {
+        Path path = inMemFs.getPath(fileName)
+        println "Deleting in-mem file: " + path.toAbsolutePath()
+        Files.delete(path)
+    }
+
+    void deleteInMemDirRecursively(String dirName) {
+        Path path = inMemFs.getPath(dirName)
+        println "Deleting in-mem dir: " + path.toAbsolutePath()
+        Files.walk(path)
+                .sorted(Comparator.reverseOrder())
+                .forEach { Files.delete(it) }
+    }
+
+    void createInMemDir(String dirName) {
+        Path path = inMemFs.getPath(dirName)
+        println "Creating in-mem dir: " + path.toAbsolutePath()
+        Files.createDirectories(path)
+    }
+
     I18nMessagePack scanInMemFs(String firstPattern, String... others) {
         setupInMemFs()
         return I18nMessagePackFactory.scanFileSystem(inMemFs, firstPattern, others)
+    }
+
+    Path inMemAbsolutePath(String path) {
+        return inMemPath(path).toAbsolutePath()
+    }
+
+    Path inMemPath(String path) {
+        return inMemFs.getPath(path)
     }
 
     private void setupInMemFs() {

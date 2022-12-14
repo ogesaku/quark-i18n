@@ -4,6 +4,7 @@ import com.coditory.quark.i18n.I18nPath;
 import com.coditory.quark.i18n.Locales;
 
 import java.io.File;
+import java.nio.file.FileSystem;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -42,6 +43,8 @@ final class I18nPathPattern {
                 .replace(".", "\\.")
                 .replace("*", "#")
                 .replace("##/", "([A-Za-z0-9-_.]+/)*")
+                .replace("^##", "([A-Za-z0-9-_.]+/)*")
+                .replace("##", "[A-Za-z0-9-_./]*")
                 .replace("#", "[A-Za-z0-9-_.]*")
                 .replace(PREFIXES_GROUP_MARKER + "/", "(?<prefixes>([A-Za-z0-9-_.]+/)*)")
                 .replace(PREFIX_GROUP_MARKER, "(?<prefix>[a-zA-Z0-9-_.]+)")
@@ -102,6 +105,16 @@ final class I18nPathPattern {
 
     public String getBaseDirectory() {
         return baseDirectory;
+    }
+
+    public I18nPathPattern withAbsoluteBaseDirectory(FileSystem fileSystem) {
+        if (baseDirectory.startsWith("/")) {
+            return this;
+        }
+        String absoluteBaseDir = fileSystem.getPath(baseDirectory).toAbsolutePath().toString();
+        String sourceWithoutBaseDir = source.substring(baseDirectory.length());
+        String newSource = normalizePath(absoluteBaseDir + "/" + sourceWithoutBaseDir);
+        return I18nPathPattern.of(newSource);
     }
 
     public boolean matches(String path) {
@@ -206,11 +219,17 @@ final class I18nPathPattern {
         if (pathPattern.contains("***")) {
             throw new IllegalArgumentException("Too many stars in path: " + pathPattern);
         }
-        if (pathPattern.endsWith("**")) {
-            throw new IllegalArgumentException("Path should not end with **. Path: " + pathPattern);
-        }
-        if (count(pathPattern, "**") != count(pathPattern, "**/")) {
-            throw new IllegalArgumentException("Dir placeholder (**) should be followed by '/'. Path: " + pathPattern);
+        if (!pathPattern.equals("**")) {
+            int correctPlaceholders = count(pathPattern, "/**/");
+            if (pathPattern.endsWith("**")) {
+                correctPlaceholders++;
+            }
+            if (pathPattern.startsWith("**")) {
+                correctPlaceholders++;
+            }
+            if (correctPlaceholders != count(pathPattern, "**")) {
+                throw new IllegalArgumentException("Invalid dir placeholder (**). Path: " + pathPattern);
+            }
         }
         if (pathPattern.contains("./")) {
             throw new IllegalArgumentException("Unexpected './'. Path: " + pathPattern);
@@ -220,9 +239,6 @@ final class I18nPathPattern {
         }
         if (count(pathPattern, "{") != count(pathPattern, "}")) {
             throw new IllegalArgumentException("Found unmatched brace in path: " + pathPattern);
-        }
-        if (count(pathPattern, "**") != count(pathPattern, "**/")) {
-            throw new IllegalArgumentException("Directories placeholder (\"**\") should be followed by a '/'. Path: " + pathPattern);
         }
         if (count(pathPattern, PREFIXES_GROUP_MARKER) != count(pathPattern, PREFIXES_GROUP_MARKER + "/")) {
             throw new IllegalArgumentException("Prefixes group (\"" + PREFIXES_GROUP_MARKER + "\") should be followed by a '/'. Path: " + pathPattern);
