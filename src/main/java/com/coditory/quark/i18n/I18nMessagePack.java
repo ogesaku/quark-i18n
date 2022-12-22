@@ -1,10 +1,13 @@
 package com.coditory.quark.i18n;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 
 import static com.coditory.quark.i18n.I18nMessages.EMPTY_ARGS;
+import static com.coditory.quark.i18n.Preconditions.expectNonBlank;
+import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 
 public interface I18nMessagePack {
     static I18nMessagePackBuilder builder() {
@@ -24,11 +27,69 @@ public interface I18nMessagePack {
     I18nMessagePack addPrefix(@NotNull String prefix);
 
     @NotNull
-    String getMessage(@NotNull Locale locale, @NotNull String key, Object... args);
+    String getMessage(@NotNull I18nKey key, Object... args);
+
+    @Nullable
+    String getMessageOrNull(@NotNull I18nKey key, Object... args);
 
     @NotNull
-    default String getMessage(@NotNull Locale locale, @NotNull String key) {
-        return getMessage(locale, key, EMPTY_ARGS);
+    default String getMessage(@NotNull I18nKey key) {
+        expectNonNull(key, "key");
+        return getMessage(key, EMPTY_ARGS);
+    }
+
+    @NotNull
+    default String getMessage(@NotNull Locale locale, @NotNull String path, Object... args) {
+        expectNonNull(locale, "locale");
+        expectNonBlank(path, "path");
+        expectNonNull(args, "args");
+        I18nKey messageKey = I18nKey.of(locale, path);
+        return getMessage(messageKey, args);
+    }
+
+    @Nullable
+    default String getMessage(@NotNull Locale locale, @NotNull I18nPath path, Object... args) {
+        expectNonNull(locale, "locale");
+        expectNonNull(path, "path");
+        expectNonNull(args, "args");
+        I18nKey messageKey = I18nKey.of(locale, path);
+        return getMessage(messageKey, args);
+    }
+
+    @NotNull
+    default String getMessage(@NotNull Locale locale, @NotNull String path) {
+        expectNonNull(locale, "locale");
+        expectNonNull(path, "path");
+        return getMessage(locale, path, EMPTY_ARGS);
+    }
+
+    @Nullable
+    default String getMessageOrNull(@NotNull I18nKey key) {
+        expectNonNull(key, "key");
+        return getMessageOrNull(key, EMPTY_ARGS);
+    }
+
+    @Nullable
+    default String getMessageOrNull(@NotNull Locale locale, @NotNull String path, Object... args) {
+        expectNonNull(locale, "locale");
+        expectNonBlank(path, "path");
+        expectNonNull(args, "args");
+        I18nKey messageKey = I18nKey.of(locale, path);
+        return getMessageOrNull(messageKey, args);
+    }
+
+    @Nullable
+    default String getMessageOrNull(@NotNull Locale locale, @NotNull I18nPath path, Object... args) {
+        expectNonNull(locale, "locale");
+        expectNonNull(path, "path");
+        expectNonNull(args, "args");
+        I18nKey messageKey = I18nKey.of(locale, path);
+        return getMessageOrNull(messageKey, args);
+    }
+
+    @Nullable
+    default String getMessageOrNull(@NotNull Locale locale, @NotNull String key) {
+        return getMessageOrNull(locale, key, EMPTY_ARGS);
     }
 
     @NotNull

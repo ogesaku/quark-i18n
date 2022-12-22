@@ -1,6 +1,7 @@
 package com.coditory.quark.i18n;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 
@@ -18,6 +19,19 @@ public final class I18nMessages {
     }
 
     @NotNull
+    public String getMessage(@NotNull I18nPath path, Object... args) {
+        expectNonNull(path, "path");
+        expectNonNull(args, "args");
+        return messagePack.getMessage(locale, path, args);
+    }
+
+    @NotNull
+    public String getMessage(@NotNull I18nPath path) {
+        expectNonNull(path, "path");
+        return messagePack.getMessage(locale, path);
+    }
+
+    @NotNull
     public String getMessage(@NotNull String key, Object... args) {
         expectNonBlank(key, "key");
         expectNonNull(args, "args");
@@ -30,6 +44,27 @@ public final class I18nMessages {
         return getMessage(key, EMPTY_ARGS);
     }
 
+    @Nullable
+    public String getMessageOrNull(@NotNull I18nPath path) {
+        expectNonNull(path, "path");
+        return messagePack.getMessageOrNull(locale, path);
+    }
+
+    @Nullable
+    public String getMessageOrNull(@NotNull Locale locale, @NotNull String path, Object... args) {
+        expectNonNull(locale, "locale");
+        expectNonBlank(path, "path");
+        expectNonNull(args, "args");
+        return messagePack.getMessageOrNull(locale, path, args);
+    }
+
+    @Nullable
+    public String getMessageOrNull(@NotNull Locale locale, @NotNull String path) {
+        expectNonNull(locale, "locale");
+        expectNonBlank(path, "path");
+        return messagePack.getMessageOrNull(locale, path, EMPTY_ARGS);
+    }
+
     @NotNull
     public I18nMessages addPrefix(@NotNull String prefix) {
         return messagePack.addPrefix(prefix).localize(locale);
@@ -40,5 +75,10 @@ public final class I18nMessages {
         expectNonNull(template, "template");
         expectNonNull(args, "args");
         return messagePack.format(locale, template, args);
+    }
+
+    @NotNull
+    public Locale getLocale() {
+        return locale;
     }
 }

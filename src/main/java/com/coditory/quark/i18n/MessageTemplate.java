@@ -1,32 +1,34 @@
 package com.coditory.quark.i18n;
 
-import java.util.List;
 import java.util.Objects;
 
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
-import static java.util.stream.Collectors.joining;
 
-final class MessageTemplate {
-    private final String template;
-    private final List<MessageTemplateNode> templateNodes;
-
-    MessageTemplate(String template, List<MessageTemplateNode> templateNodes) {
-        expectNonNull(template, "template");
-        expectNonNull(templateNodes, "templateNodes");
-        this.template = template;
-        this.templateNodes = List.copyOf(templateNodes);
+public final class MessageTemplate {
+    static MessageTemplate parse(ExpressionParser parser, String value) {
+        Expression expression = parser.parse(value);
+        return new MessageTemplate(value, expression);
     }
 
-    public String format(Object[] args) {
-        expectNonNull(args, "args");
-        return templateNodes.stream()
-                .map(node -> node.resolve(args))
-                .collect(joining());
+    private final String value;
+    private final Expression expression;
+
+    MessageTemplate(String value, Expression expression) {
+        expectNonNull(value, "value");
+        expectNonNull(expression, "expression");
+        this.value = value;
+        this.expression = expression;
+    }
+
+    public String resolve(ExpressionResolutionContext context) {
+        expectNonNull(context, "args");
+        Object value = expression.resolve(context);
+        return Objects.toString(value);
     }
 
     @Override
     public String toString() {
-        return "MessageTemplate{" + template + '}';
+        return "MessageTemplate{" + value + '}';
     }
 
     @Override
@@ -34,11 +36,11 @@ final class MessageTemplate {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MessageTemplate that = (MessageTemplate) o;
-        return template.equals(that.template);
+        return value.equals(that.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(template);
+        return Objects.hash(value);
     }
 }

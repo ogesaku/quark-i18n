@@ -5,5 +5,5 @@ import org.jetbrains.annotations.NotNull;
 @FunctionalInterface
 public interface I18nFormatter {
     @NotNull
-    String format(@NotNull Object value);
+    Object format(@NotNull Object value);
 }

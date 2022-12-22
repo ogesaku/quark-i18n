@@ -1,7 +1,10 @@
 package com.coditory.quark.i18n.formatter;
 
+import com.coditory.quark.i18n.ExpressionContext;
+import com.coditory.quark.i18n.ExpressionResolutionContext;
 import com.coditory.quark.i18n.I18nMessageTemplates;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,14 +12,13 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
-public final class PluralI18NFormatterProvider implements I18nFormatterProvider {
+public final class PluralI18nFormatterProvider implements I18nFormatterProvider {
     public static final String FILTER = "plural";
 
     @Override
     @NotNull
-    public I18nFormatter formatter(@NotNull I18nMessageTemplates messages, @NotNull List<String> args) {
-        requireNonNull(messages);
-        requireNonNull(args);
+    public I18nFormatter formatter(@NotNull FormatterContext context) {
+        requireNonNull(context);
         if (args.size() < 3) {
             throw new RuntimeException("Expected at least 3 arguments got: " + args);
         }

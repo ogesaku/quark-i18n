@@ -1,5 +1,7 @@
 package com.coditory.quark.i18n;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -18,11 +20,16 @@ final class I18nMessageTemplatesPack {
         this.keyGenerator = expectNonNull(keyGenerator, "keyGenerator");
     }
 
-    Map<I18nKey, String> filterMessagesWith(Locale locale) {
-        expectNonNull(locale, "locale");
-        return messages.entrySet().stream()
-                .filter(e -> e.getKey().locale().equals(locale))
-                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+    Set<Map.Entry<I18nKey, String>> entries() {
+        return messages.entrySet();
+    }
+
+    Set<I18nKey> getKeys() {
+        return messages.keySet();
+    }
+
+    Collection<String> getValues() {
+        return messages.values();
     }
 
     I18nMessageTemplates withLocale(Locale locale) {

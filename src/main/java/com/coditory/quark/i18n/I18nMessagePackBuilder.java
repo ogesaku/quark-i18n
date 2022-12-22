@@ -1,12 +1,12 @@
 package com.coditory.quark.i18n;
 
-import com.coditory.quark.i18n.formatter.DateI18NFormatterProvider;
-import com.coditory.quark.i18n.formatter.DateTimeI18NFormatterProvider;
+import com.coditory.quark.i18n.formatter.DateI18nFormatterProvider;
+import com.coditory.quark.i18n.formatter.DateTimeI18nFormatterProvider;
 import com.coditory.quark.i18n.formatter.I18nFormatterProvider;
-import com.coditory.quark.i18n.formatter.MoneyI18NFormatterProvider;
-import com.coditory.quark.i18n.formatter.NumberI18NFormatterProvider;
-import com.coditory.quark.i18n.formatter.PluralI18NFormatterProvider;
-import com.coditory.quark.i18n.formatter.TimeI18NFormatterProvider;
+import com.coditory.quark.i18n.formatter.MoneyI18nFormatterProvider;
+import com.coditory.quark.i18n.formatter.NumberI18nFormatterProvider;
+import com.coditory.quark.i18n.formatter.PluralI18nFormatterProvider;
+import com.coditory.quark.i18n.formatter.TimeI18nFormatterProvider;
 import com.coditory.quark.i18n.loader.I18nFileLoaderFactory;
 import com.coditory.quark.i18n.loader.I18nLoader;
 import org.jetbrains.annotations.NotNull;
@@ -28,16 +28,16 @@ import static java.util.stream.Collectors.toMap;
 
 public final class I18nMessagePackBuilder {
     private final Map<Class<?>, I18nFormatterProvider> DEFAULT_TYPE_FORMATTERS = Map.of(
-            Instant.class, new DateTimeI18NFormatterProvider(),
-            Number.class, new NumberI18NFormatterProvider()
+            Instant.class, new DateTimeI18nFormatterProvider(),
+            Number.class, new NumberI18nFormatterProvider()
     );
     private final Map<String, I18nFormatterProvider> DEFAULT_NAMED_FORMATTERS = Map.of(
-            "number", new NumberI18NFormatterProvider(),
-            "money", new MoneyI18NFormatterProvider(),
-            "dateTime", new DateTimeI18NFormatterProvider(),
-            "date", new DateI18NFormatterProvider(),
-            "time", new TimeI18NFormatterProvider(),
-            "plural", new PluralI18NFormatterProvider()
+            "number", new NumberI18nFormatterProvider(),
+            "money", new MoneyI18nFormatterProvider(),
+            "dateTime", new DateTimeI18nFormatterProvider(),
+            "date", new DateI18nFormatterProvider(),
+            "time", new TimeI18nFormatterProvider(),
+            "plural", new PluralI18nFormatterProvider()
     );
     private final Map<Class<?>, I18nFormatterProvider> typeFormatters = new HashMap<>(DEFAULT_TYPE_FORMATTERS);
     private final Map<String, I18nFormatterProvider> namedFormatters = new HashMap<>(DEFAULT_NAMED_FORMATTERS);
@@ -205,13 +205,6 @@ public final class I18nMessagePackBuilder {
         return new Reloadable18nMessagePack(loader, copy::build);
     }
 
-    private I18nMessagePack build(Map<I18nKey, String> entries) {
-        I18nMessageTemplatesPack templatePack = new I18nMessageTemplatesPack(entries, keyGenerator);
-        MessageTemplateParser parser = new MessageTemplateParser(templatePack, this.namedFormatters, this.typeFormatters);
-        Map<I18nKey, MessageTemplate> templates = parseTemplates(templatePack, parser);
-        return new ImmutableI18nMessagePack(templates, parser, unresolvedMessageHandler, keyGenerator, prefixes);
-    }
-
     @NotNull
     public Reloadable18nMessagePack buildAndWatchForChanges() {
         Reloadable18nMessagePack messagePack = buildReloadable();
@@ -219,15 +212,24 @@ public final class I18nMessagePackBuilder {
         return messagePack;
     }
 
-    private Map<I18nKey, MessageTemplate> parseTemplates(I18nMessageTemplatesPack messages, MessageTemplateParser parser) {
-        return messages.getLocales().stream()
-                .flatMap(locale -> parseTemplates(parser, messages, locale).entrySet().stream())
-                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+    private I18nMessagePack build(Map<I18nKey, String> entries) {
+        I18nMessageTemplatesPack templatePack = new I18nMessageTemplatesPack(entries, keyGenerator);
+        FormatterResolver formatterResolver = new FormatterResolver(this.namedFormatters, this.typeFormatters, templatePack);
+        MessageTemplateParser parser = new MessageTemplateParser(formatterResolver);
+        Map<I18nKey, MessageTemplate> templates = parser.parseTemplates(templatePack);
+        return new ImmutableI18nMessagePack(templates, parser, unresolvedMessageHandler, keyGenerator, prefixes);
     }
 
-    private Map<I18nKey, MessageTemplate> parseTemplates(MessageTemplateParser parser, I18nMessageTemplatesPack messages, Locale locale) {
-        return messages.filterMessagesWith(locale).entrySet().stream()
-                .map(e -> entry(e.getKey(), parser.parse(locale, e.getValue())))
-                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+    private Map<I18nKey, MessageTemplate> parseTemplates(I18nMessageTemplatesPack messages, ExpressionParser parser) {
+        Map<I18nKey, MessageTemplate> result = new HashMap<>();
+        Map<String, Expression> expressions = new HashMap<>();
+        for (Map.Entry<I18nKey, String> entry : messages.entries()) {
+            I18nKey key = entry.getKey();
+            String value = entry.getValue();
+            Expression expression = expressions.computeIfAbsent(value, parser::parse);
+            MessageTemplate template = new MessageTemplate(value, expression);
+            result.put(key, template);
+        }
+        return result;
     }
 }

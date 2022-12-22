@@ -45,6 +45,7 @@ public final class I18nMessageTemplates {
                 .findFirst();
     }
 
+    @NotNull
     public Locale getLocale() {
         return locale;
     }
