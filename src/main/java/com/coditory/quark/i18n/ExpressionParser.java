@@ -2,98 +2,111 @@ package com.coditory.quark.i18n;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 
 final class ExpressionParser {
-    private final FormatterResolver formatterResolver;
+    private final FilterResolver filterResolver;
 
-    ExpressionParser(FormatterResolver formatterResolver) {
-        expectNonNull(formatterResolver, "formatterResolver");
-        this.formatterResolver = formatterResolver;
+    ExpressionParser(FilterResolver filterResolver) {
+        expectNonNull(filterResolver, "filterResolver");
+        this.filterResolver = filterResolver;
     }
 
-    Expression parse(String expression) {
-        expectNonNull(expression, "expression");
-        ExpressionContext context = new ExpressionContext(formatterResolver, this);
+    Expression parseText(String input) {
+        TextCursor cursor = TextCursor.beginningOf(input);
+        return parseText(cursor, false);
+    }
+
+    private Expression parseText(TextCursor cursor, boolean nested) {
+        if (nested && !cursor.startsWithAny("(")) {
+            throw new RuntimeException("Expected nested text to start with \"(\"");
+        } else if (nested) {
+            cursor.nextChar();
+        }
         List<Expression> expressions = new ArrayList<>();
-        boolean formatterExpression = false;
-        boolean referenceExpression = false;
-        boolean escaped = false;
-        Set<Character> escapable = Set.of('$', '{', '}');
         StringBuilder chunk = new StringBuilder();
-        char[] chars = expression.toCharArray();
-        for (int i = 0; i < chars.length; ++i) {
-            char c = chars[i];
-            if (escaped) {
-                if (!escapable.contains(c)) {
-                    throw new RuntimeException("Could not escape: \"" + c + "\" in expression: \"" + expression + "\"");
-                }
-                escaped = false;
-                chunk.append(c);
-            } else if ('\\' == c) {
-                escaped = true;
-            } else if (startsWith(chars, i, "${")) {
-                if (chunk.length() > 0) {
-                    StaticExpression parsed = StaticExpression.parse(chunk.toString());
-                    expressions.add(parsed);
-                    chunk = new StringBuilder();
-                }
-                referenceExpression = true;
-                i += 1;
-            } else if ('{' == c) {
-                if (chunk.length() > 0) {
-                    StaticExpression parsed = StaticExpression.parse(chunk.toString());
-                    expressions.add(parsed);
-                    chunk = new StringBuilder();
-                }
-                formatterExpression = true;
-            } else if ('}' == c) {
-                if (formatterExpression) {
-                    if (chunk.length() > 0) {
-                        FormatterExpression parsed = FormatterExpression.parse(chunk.toString().trim(), context);
-                        expressions.add(parsed);
-                        chunk = new StringBuilder();
-                    }
-                    formatterExpression = false;
-                } else if (referenceExpression) {
-                    if (chunk.length() > 0) {
-                        ReferenceExpression parsed = ReferenceExpression.parse(chunk.toString().trim());
-                        expressions.add(parsed);
-                        chunk = new StringBuilder();
-                    }
-                    referenceExpression = false;
-                } else {
-                    throw new RuntimeException("Unopened expression in template: \"" + expression + "\"");
-                }
+        boolean closed = false;
+        while (!cursor.hasNextChar()) {
+            char c = cursor.nextChar();
+            if (c == '\\' && cursor.startsWithAny("${")) {
+                chunk.append(cursor.nextChar());
+                chunk.append(cursor.nextChar());
+            } else if (c == '\\' && cursor.startsWithAny('{', '}')) {
+                chunk.append(cursor.nextChar());
+            } else if (c == '\\' && nested && cursor.startsWithAny('(', ')')) {
+                chunk.append(cursor.nextChar());
+            } else if (c == ')' && nested) {
+                closed = true;
+                break;
+            } else if (c == '{' || cursor.startsWith("${")) {
+                expressions.add(StaticExpression.parse(chunk));
+                chunk = new StringBuilder();
+                cursor.prevChar();
+                Expression expression = parseExpression(cursor);
+                expressions.add(expression);
+            } else if (c == '}') {
+                throw new RuntimeException("Unmatched expression closing at index " + cursor.getPosition() + "\" in \"" + cursor.getFullText() + "\"");
             } else {
                 chunk.append(c);
             }
         }
-        if (chunk.length() > 0) {
-            StaticExpression parsed = StaticExpression.parse(chunk.toString());
-            expressions.add(parsed);
+        if (nested && !closed) {
+            throw new IllegalArgumentException("Unclosed expression. Missing: ')'");
         }
-        if (expressions.isEmpty()) {
-            return StaticExpression.parse("");
-        }
-        if (expressions.size() == 1) {
-            return expressions.get(0);
-        }
+        expressions.add(StaticExpression.parse(chunk));
         return CompositeExpression.of(expressions);
     }
 
-    private static boolean startsWith(char[] c, int index, String value) {
-        if (c.length < value.length() + index) {
-            return false;
+    private Expression parseExpression(TextCursor cursor) {
+        if (!cursor.startsWithAny("{", "${")) {
+            throw new RuntimeException("Expected expression to start with \"{\" or \"${\"");
         }
-        boolean match = true;
-        int i = 0;
-        while (i < value.length() && match) {
-            match = value.charAt(i) == c[index + i];
-            ++i;
+        ExpressionBuilder builder;
+        if (cursor.startsWithAny("${")) {
+            builder = ExpressionBuilder.reference(filterResolver);
+            cursor.nextChar(2);
+        } else {
+            builder = ExpressionBuilder.argument(filterResolver);
+            cursor.nextChar();
         }
-        return match && i == value.length();
+        StringBuilder chunk = new StringBuilder();
+        while (!cursor.hasNextChar()) {
+            char c = cursor.nextChar();
+            if (c == '\\' && cursor.startsWithAny("${")) {
+                chunk.append(cursor.nextChar());
+                chunk.append(cursor.nextChar());
+            } else if (c == '\\' && cursor.startsWithAny('{', '}')) {
+                chunk.append(cursor.nextChar());
+            } else if (c == '\\' && cursor.startsWithAny('(', ')')) {
+                chunk.append(cursor.nextChar());
+            } else if (cursor.startsWith("${") || c == '{') {
+                builder.addToken(chunk);
+                chunk = new StringBuilder();
+                cursor.prevChar();
+                Expression expression = parseExpression(cursor);
+                builder.addToken(expression);
+            } else if (c == '}') {
+                builder.addToken(chunk);
+                return builder.build();
+            } else if (c == '|') {
+                builder.addToken(chunk);
+                chunk = new StringBuilder();
+                builder.pipe();
+            } else if (c == '(') {
+                builder.addToken(chunk);
+                chunk = new StringBuilder();
+                cursor.prevChar();
+                Expression expression = parseText(cursor, true);
+                builder.addToken(expression);
+            } else if (Character.isWhitespace(c)) {
+                builder.addToken(chunk);
+                chunk = new StringBuilder();
+            } else {
+                chunk.append(c);
+            }
+        }
+        throw new IllegalArgumentException("Unclosed expression. Missing: '}'");
     }
+
 }

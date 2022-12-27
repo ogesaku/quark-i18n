@@ -1,39 +1,75 @@
 package com.coditory.quark.i18n;
 
-import com.coditory.quark.i18n.formatter.I18nFormatter;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
+import static com.coditory.quark.i18n.Preconditions.expect;
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 import static java.util.stream.Collectors.joining;
 
 public interface Expression {
-    Object resolve(ExpressionResolutionContext context);
+    Object resolve(ExpressionContext context);
+
+    @Nullable
+    default Object getStaticValue() {
+        return null;
+    }
 }
 
 final class StaticExpression implements Expression {
+    private static final StaticExpression EMPTY = new StaticExpression("");
     private final String value;
 
-    static StaticExpression parse(String value) {
-        return new StaticExpression(value);
+    static StaticExpression empty() {
+        return EMPTY;
+    }
+
+    static StaticExpression parse(StringBuilder value) {
+        return value.isEmpty() ? EMPTY : new StaticExpression(value.toString());
     }
 
     private StaticExpression(String value) {
         this.value = expectNonNull(value, "value");
     }
 
+    public String getValue() {
+        return value;
+    }
+
     @Override
-    public String resolve(ExpressionResolutionContext context) {
+    public String resolve(ExpressionContext context) {
         expectNonNull(context, "context");
         return value;
+    }
+
+    @Override
+    @Nullable
+    public Object getStaticValue() {
+        return value;
+    }
+
+    @Override
+    public String toString() {
+        return "StaticExpression{\"" + value + "\"}";
     }
 }
 
 final class CompositeExpression implements Expression {
     private final List<Expression> expressions;
 
-    static CompositeExpression of(List<Expression> expressions) {
+    static Expression of(List<Expression> expressions) {
         expectNonNull(expressions, "expressions");
+        expressions = expressions.stream()
+                .filter(expression -> !(StaticExpression.empty().equals(expression)))
+                .toList();
+        if (expressions.isEmpty()) {
+            return StaticExpression.empty();
+        }
+        if (expressions.size() == 1) {
+            return expressions.get(0);
+        }
         return new CompositeExpression(expressions);
     }
 
@@ -42,68 +78,82 @@ final class CompositeExpression implements Expression {
     }
 
     @Override
-    public String resolve(ExpressionResolutionContext context) {
+    public String resolve(ExpressionContext context) {
         expectNonNull(context, "context");
         return expressions.stream()
-                .map(expression -> expression.resolve(context).toString())
+                .map(expression -> expression.resolve(context))
+                .filter(Objects::nonNull)
+                .map(Objects::toString)
                 .collect(joining());
-    }
-}
-
-final class FormatterExpression implements Expression {
-    private final Expression expression;
-    private final I18nFormatter formatter;
-
-    static FormatterExpression parse(String expression, ExpressionContext context) {
-        expectNonNull(expression, "expression");
-        expectNonNull(context, "context");
-        List<String> chunks = ExpressionSpliterator.splitBy(expression, '|');
-        if (chunks.isEmpty()) {
-            throw new RuntimeException("Empty expression");
-        }
-        if (chunks.size() > 2) {
-            throw new RuntimeException("Expected single '|'. Got: " + chunks.size());
-        }
-        String rawValue = chunks.get(0);
-        Expression valueExpression = context.parse(rawValue);
-        I18nFormatter formatter = chunks.size() == 0
-                ? context.getTypedFormatter()
-                : context.getFormatterByName(rawValue, chunks.get(1));
-        return new FormatterExpression(valueExpression, formatter);
-    }
-
-    private FormatterExpression(Expression expression, I18nFormatter formatter) {
-        this.expression = expectNonNull(expression, "expression");
-        this.formatter = expectNonNull(formatter, "formatter");
     }
 
     @Override
-    public Object resolve(ExpressionResolutionContext context) {
+    public String toString() {
+        return "CompositeExpression{" + expressions + '}';
+    }
+}
+
+final class ArgExpression implements Expression {
+    private final int index;
+    private final List<ExpressionFilter> filters;
+
+    public static ArgExpression parse(String value, List<ExpressionFilter> filters) {
+        expectNonNull(value, "value");
+        expectNonNull(filters, "filters");
+        int argIndex = Integer.parseInt(value);
+        expect(argIndex >= 0, "Expected argument index >= 0. Got: " + argIndex);
+        return new ArgExpression(argIndex, filters);
+    }
+
+    private ArgExpression(int index, List<ExpressionFilter> filters) {
+        this.index = index;
+        this.filters = List.copyOf(filters);
+    }
+
+    @Override
+    public Object resolve(ExpressionContext context) {
         expectNonNull(context, "context");
-        Object arg = expression.resolve(context);
-        return formatter != null
-                ? formatter.format(arg)
-                : arg;
+        return context.args().get(index);
+    }
+
+    @Override
+    public String toString() {
+        return "ArgExpression{" +
+                "index=" + index +
+                ", filters=" + filters +
+                '}';
     }
 }
 
 final class ReferenceExpression implements Expression {
-    private final I18nPath path;
+    private final I18nPath reference;
+    private final List<ExpressionFilter> filters;
 
-    static ReferenceExpression parse(String value) {
+    static ReferenceExpression parse(String value, List<ExpressionFilter> filters) {
+        expectNonNull(value, "value");
+        expectNonNull(filters, "filters");
         I18nPath path = I18nPath.of(value);
-        return new ReferenceExpression(path);
+        return new ReferenceExpression(path, filters);
     }
 
-    private ReferenceExpression(I18nPath path) {
-        this.path = expectNonNull(path, "path");
+    private ReferenceExpression(I18nPath reference, List<ExpressionFilter> filters) {
+        this.reference = reference;
+        this.filters = List.copyOf(filters);
     }
 
     @Override
-    public String resolve(ExpressionResolutionContext context) {
+    public String resolve(ExpressionContext context) {
         expectNonNull(context, "context");
-        I18nMessages messages = context.getMessages();
-        Object[] args = context.getArgs().toArray();
-        return messages.getMessage(path, args);
+        I18nMessages messages = context.messages();
+        Object[] args = context.args().toArray();
+        return messages.getMessage(reference, args);
+    }
+
+    @Override
+    public String toString() {
+        return "ReferenceExpression{" +
+                "reference=" + reference +
+                ", filters=" + filters +
+                '}';
     }
 }

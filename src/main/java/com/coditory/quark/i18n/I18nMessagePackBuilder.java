@@ -1,12 +1,5 @@
 package com.coditory.quark.i18n;
 
-import com.coditory.quark.i18n.formatter.DateI18nFormatterProvider;
-import com.coditory.quark.i18n.formatter.DateTimeI18nFormatterProvider;
-import com.coditory.quark.i18n.formatter.I18nFormatterProvider;
-import com.coditory.quark.i18n.formatter.MoneyI18nFormatterProvider;
-import com.coditory.quark.i18n.formatter.NumberI18nFormatterProvider;
-import com.coditory.quark.i18n.formatter.PluralI18nFormatterProvider;
-import com.coditory.quark.i18n.formatter.TimeI18nFormatterProvider;
 import com.coditory.quark.i18n.loader.I18nFileLoaderFactory;
 import com.coditory.quark.i18n.loader.I18nLoader;
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +16,6 @@ import java.util.Map;
 import static com.coditory.quark.i18n.I18nKeyGenerator.relaxedI18nKeyGenerator;
 import static com.coditory.quark.i18n.Preconditions.expectNonBlank;
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
-import static java.util.Map.entry;
 import static java.util.stream.Collectors.toMap;
 
 public final class I18nMessagePackBuilder {
@@ -31,7 +23,7 @@ public final class I18nMessagePackBuilder {
             Instant.class, new DateTimeI18nFormatterProvider(),
             Number.class, new NumberI18nFormatterProvider()
     );
-    private final Map<String, I18nFormatterProvider> DEFAULT_NAMED_FORMATTERS = Map.of(
+    private final Map<String, I18nFormatterProvider> DEFAULT_FILTERS = Map.of(
             "number", new NumberI18nFormatterProvider(),
             "money", new MoneyI18nFormatterProvider(),
             "dateTime", new DateTimeI18nFormatterProvider(),
@@ -40,7 +32,7 @@ public final class I18nMessagePackBuilder {
             "plural", new PluralI18nFormatterProvider()
     );
     private final Map<Class<?>, I18nFormatterProvider> typeFormatters = new HashMap<>(DEFAULT_TYPE_FORMATTERS);
-    private final Map<String, I18nFormatterProvider> namedFormatters = new HashMap<>(DEFAULT_NAMED_FORMATTERS);
+    private final Map<String, I18nFormatterProvider> namedFormatters = new HashMap<>(DEFAULT_FILTERS);
     private final AggregatedI18nLoader loader = new AggregatedI18nLoader();
     private final List<I18nPath> prefixes = new ArrayList<>();
     private I18nKeyGenerator keyGenerator = relaxedI18nKeyGenerator();
@@ -214,8 +206,8 @@ public final class I18nMessagePackBuilder {
 
     private I18nMessagePack build(Map<I18nKey, String> entries) {
         I18nMessageTemplatesPack templatePack = new I18nMessageTemplatesPack(entries, keyGenerator);
-        FormatterResolver formatterResolver = new FormatterResolver(this.namedFormatters, this.typeFormatters, templatePack);
-        MessageTemplateParser parser = new MessageTemplateParser(formatterResolver);
+        FilterResolver filterResolver = new FilterResolver(this.namedFormatters, this.typeFormatters);
+        MessageTemplateParser parser = new MessageTemplateParser(filterResolver);
         Map<I18nKey, MessageTemplate> templates = parser.parseTemplates(templatePack);
         return new ImmutableI18nMessagePack(templates, parser, unresolvedMessageHandler, keyGenerator, prefixes);
     }

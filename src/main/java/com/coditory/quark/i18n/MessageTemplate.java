@@ -20,7 +20,7 @@ public final class MessageTemplate {
         this.expression = expression;
     }
 
-    public String resolve(ExpressionResolutionContext context) {
+    public String resolve(ExpressionContext context) {
         expectNonNull(context, "args");
         Object value = expression.resolve(context);
         return Objects.toString(value);

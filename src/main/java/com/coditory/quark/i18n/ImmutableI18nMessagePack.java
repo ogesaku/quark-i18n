@@ -62,7 +62,7 @@ final class ImmutableI18nMessagePack implements I18nMessagePack {
         expectNonNull(key, "key");
         expectNonNull(args, "args");
         I18nMessages messages = localize(key.locale());
-        ExpressionResolutionContext context = new ExpressionResolutionContext(Arrays.asList(args), messages);
+        ExpressionContext context = new ExpressionContext(Arrays.asList(args), messages);
         return keyGenerator.keys(prefixes, key)
                 .stream()
                 .map(templates::get)
@@ -79,7 +79,7 @@ final class ImmutableI18nMessagePack implements I18nMessagePack {
         expectNonNull(expression, "expression");
         expectNonNull(args, "args");
         I18nMessages messages = localize(locale);
-        ExpressionResolutionContext context = new ExpressionResolutionContext(Arrays.asList(args), messages);
+        ExpressionContext context = new ExpressionContext(Arrays.asList(args), messages);
         Object value = parser.parse(expression)
                 .resolve(context);
         return Objects.toString(value);

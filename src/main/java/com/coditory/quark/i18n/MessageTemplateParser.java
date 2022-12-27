@@ -8,9 +8,9 @@ import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 public final class MessageTemplateParser {
     private final ExpressionParser expressionParser;
 
-    MessageTemplateParser(FormatterResolver formatterResolver) {
-        expectNonNull(formatterResolver, "formatterResolver");
-        this.expressionParser = new ExpressionParser(formatterResolver);
+    MessageTemplateParser(FilterResolver formatter) {
+        expectNonNull(formatter, "formatterResolver");
+        this.expressionParser = new ExpressionParser(formatter);
     }
 
     Map<I18nKey, MessageTemplate> parseTemplates(I18nMessageTemplatesPack messages) {
