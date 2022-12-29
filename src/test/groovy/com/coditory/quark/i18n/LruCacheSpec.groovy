@@ -26,7 +26,7 @@ class LruCacheSpec extends Specification {
         when:
             cache.put("a", "A2")
             cache.put("b", "B2")
-        expect:
+        then:
             cache.get("a") == "A2"
             cache.get("b") == "B2"
             cache.get("c") == "C"
@@ -57,7 +57,7 @@ class LruCacheSpec extends Specification {
         when:
             cache.get("a")
             cache.put("d", "D")
-        expect:
+        then:
             cache.get("a") == "A"
             cache.get("b") == null
             cache.get("c") == "C"
@@ -74,7 +74,7 @@ class LruCacheSpec extends Specification {
         when:
             cache.put("a", "A2")
             cache.put("d", "D")
-        expect:
+        then:
             cache.get("a") == "A2"
             cache.get("b") == null
             cache.get("c") == "C"

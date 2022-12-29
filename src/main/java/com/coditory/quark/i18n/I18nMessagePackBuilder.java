@@ -2,52 +2,33 @@ package com.coditory.quark.i18n;
 
 import com.coditory.quark.i18n.loader.I18nFileLoaderFactory;
 import com.coditory.quark.i18n.loader.I18nLoader;
+import com.coditory.quark.i18n.loader.I18nTemplates;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.FileSystem;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static com.coditory.quark.i18n.I18nKeyGenerator.relaxedI18nKeyGenerator;
 import static com.coditory.quark.i18n.Preconditions.expectNonBlank;
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
-import static java.util.stream.Collectors.toMap;
 
 public final class I18nMessagePackBuilder {
-    private final Map<Class<?>, I18nFormatterProvider> DEFAULT_TYPE_FORMATTERS = Map.of(
-            Instant.class, new DateTimeI18nFormatterProvider(),
-            Number.class, new NumberI18nFormatterProvider()
-    );
-    private final Map<String, I18nFormatterProvider> DEFAULT_FILTERS = Map.of(
-            "number", new NumberI18nFormatterProvider(),
-            "money", new MoneyI18nFormatterProvider(),
-            "dateTime", new DateTimeI18nFormatterProvider(),
-            "date", new DateI18nFormatterProvider(),
-            "time", new TimeI18nFormatterProvider(),
-            "plural", new PluralI18nFormatterProvider()
-    );
-    private final Map<Class<?>, I18nFormatterProvider> typeFormatters = new HashMap<>(DEFAULT_TYPE_FORMATTERS);
-    private final Map<String, I18nFormatterProvider> namedFormatters = new HashMap<>(DEFAULT_FILTERS);
     private final AggregatedI18nLoader loader = new AggregatedI18nLoader();
-    private final List<I18nPath> prefixes = new ArrayList<>();
-    private I18nKeyGenerator keyGenerator = relaxedI18nKeyGenerator();
+    private final List<I18nPath> referenceFallbackPaths = new ArrayList<>();
+    private final List<I18nPath> messageFallbackPaths = new ArrayList<>();
     private I18nUnresolvedMessageHandler unresolvedMessageHandler = I18nUnresolvedMessageHandler.throwError();
+    private Locale defaultLocale;
 
     private I18nMessagePackBuilder copy() {
         I18nMessagePackBuilder builder = new I18nMessagePackBuilder();
-        builder.typeFormatters.clear();
-        builder.typeFormatters.putAll(typeFormatters);
-        builder.namedFormatters.clear();
-        builder.namedFormatters.putAll(namedFormatters);
         builder.loader.addLoader(loader.copy());
-        builder.prefixes.clear();
-        builder.prefixes.addAll(prefixes);
-        builder.keyGenerator = keyGenerator;
+        builder.referenceFallbackPaths.clear();
+        builder.referenceFallbackPaths.addAll(referenceFallbackPaths);
+        builder.messageFallbackPaths.clear();
+        builder.messageFallbackPaths.addAll(messageFallbackPaths);
         builder.unresolvedMessageHandler = unresolvedMessageHandler;
         return builder;
     }
@@ -123,22 +104,6 @@ public final class I18nMessagePackBuilder {
     }
 
     @NotNull
-    public I18nMessagePackBuilder addFormatter(@NotNull Class<?> type, @NotNull I18nFormatterProvider formatter) {
-        expectNonNull(type, "type");
-        expectNonNull(formatter, "formatter");
-        typeFormatters.put(type, formatter);
-        return this;
-    }
-
-    @NotNull
-    public I18nMessagePackBuilder addFormatter(@NotNull String name, @NotNull I18nFormatterProvider formatter) {
-        expectNonBlank(name, "name");
-        expectNonNull(formatter, "formatter");
-        namedFormatters.put(name, formatter);
-        return this;
-    }
-
-    @NotNull
     public I18nMessagePackBuilder setUnresolvedMessageHandler(@NotNull I18nUnresolvedMessageHandler unresolvedMessageHandler) {
         expectNonNull(unresolvedMessageHandler, "unresolvedMessageHandler");
         this.unresolvedMessageHandler = unresolvedMessageHandler;
@@ -146,47 +111,87 @@ public final class I18nMessagePackBuilder {
     }
 
     @NotNull
-    public I18nMessagePackBuilder setKeyGenerator(@NotNull I18nKeyGenerator keyGenerator) {
-        expectNonNull(keyGenerator, "keyGenerator");
-        this.keyGenerator = keyGenerator;
-        return this;
-    }
-
-    @NotNull
     public I18nMessagePackBuilder setDefaultLocale(@NotNull Locale defaultLocale) {
         expectNonNull(defaultLocale, "defaultLocale");
-        this.keyGenerator = relaxedI18nKeyGenerator(defaultLocale);
+        this.defaultLocale = defaultLocale;
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder setPrefixes(@NotNull List<String> prefixes) {
-        expectNonNull(prefixes, "prefixes");
-        this.prefixes.clear();
-        prefixes.forEach(this::addPrefix);
+    public I18nMessagePackBuilder setReferenceFallbackPaths(@NotNull List<String> paths) {
+        expectNonNull(paths, "paths");
+        this.referenceFallbackPaths.clear();
+        paths.forEach(this::addReferenceFallbackPath);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder setPrefixes(@NotNull String... prefixes) {
-        expectNonNull(prefixes, "prefixes");
-        this.prefixes.clear();
-        Arrays.stream(prefixes).forEach(this::addPrefix);
+    public I18nMessagePackBuilder setReferenceFallbackPaths(@NotNull String... paths) {
+        expectNonNull(paths, "paths");
+        this.referenceFallbackPaths.clear();
+        Arrays.stream(paths).forEach(this::addReferenceFallbackPath);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder addPrefix(@NotNull String prefix) {
-        expectNonBlank(prefix, "prefix");
-        I18nPath.validate(prefix);
-        I18nPath path = I18nPath.of(prefix);
-        this.prefixes.add(path);
+    public I18nMessagePackBuilder addReferenceFallbackPath(@NotNull String path) {
+        expectNonBlank(path, "paths");
+        I18nPath i18nPath = I18nPath.of(path);
+        this.referenceFallbackPaths.add(i18nPath);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder setMessageFallbackPaths(@NotNull List<String> paths) {
+        expectNonNull(paths, "paths");
+        this.messageFallbackPaths.clear();
+        paths.forEach(this::addMessageFallbackPath);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder setMessageFallbackPaths(@NotNull String... paths) {
+        expectNonNull(paths, "paths");
+        this.messageFallbackPaths.clear();
+        Arrays.stream(paths).forEach(this::addMessageFallbackPath);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder addMessageFallbackPath(@NotNull String path) {
+        expectNonBlank(path, "paths");
+        I18nPath i18nPath = I18nPath.of(path);
+        this.messageFallbackPaths.add(i18nPath);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder setFallbackPaths(@NotNull List<String> paths) {
+        expectNonNull(paths, "paths");
+        setMessageFallbackPaths(paths);
+        setReferenceFallbackPaths(paths);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder setFallbackPaths(@NotNull String... paths) {
+        expectNonNull(paths, "paths");
+        setMessageFallbackPaths(paths);
+        setReferenceFallbackPaths(paths);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder addFallbackPaths(@NotNull String path) {
+        expectNonBlank(path, "paths");
+        addMessageFallbackPath(path);
+        addReferenceFallbackPath(path);
         return this;
     }
 
     @NotNull
     public I18nMessagePack build() {
-        Map<I18nKey, String> entries = loader.load();
+        List<I18nTemplates> entries = loader.load();
         return build(entries);
     }
 
@@ -204,24 +209,13 @@ public final class I18nMessagePackBuilder {
         return messagePack;
     }
 
-    private I18nMessagePack build(Map<I18nKey, String> entries) {
-        I18nMessageTemplatesPack templatePack = new I18nMessageTemplatesPack(entries, keyGenerator);
-        FilterResolver filterResolver = new FilterResolver(this.namedFormatters, this.typeFormatters);
-        MessageTemplateParser parser = new MessageTemplateParser(filterResolver);
-        Map<I18nKey, MessageTemplate> templates = parser.parseTemplates(templatePack);
-        return new ImmutableI18nMessagePack(templates, parser, unresolvedMessageHandler, keyGenerator, prefixes);
-    }
-
-    private Map<I18nKey, MessageTemplate> parseTemplates(I18nMessageTemplatesPack messages, ExpressionParser parser) {
-        Map<I18nKey, MessageTemplate> result = new HashMap<>();
-        Map<String, Expression> expressions = new HashMap<>();
-        for (Map.Entry<I18nKey, String> entry : messages.entries()) {
-            I18nKey key = entry.getKey();
-            String value = entry.getValue();
-            Expression expression = expressions.computeIfAbsent(value, parser::parse);
-            MessageTemplate template = new MessageTemplate(value, expression);
-            result.put(key, template);
-        }
-        return result;
+    private I18nMessagePack build(List<I18nTemplates> entries) {
+        LocaleResolver localeResolver = LocaleResolver.of(defaultLocale, entries);
+        I18nKeyGenerator messageKeyGenerator = new I18nKeyGenerator(defaultLocale, messageFallbackPaths, localeResolver);
+        I18nKeyGenerator referenceKeyGenerator = new I18nKeyGenerator(defaultLocale, referenceFallbackPaths, localeResolver);
+        ReferenceResolver resolver = new ReferenceResolver(entries, referenceKeyGenerator);
+        MessageTemplateParser parser = new MessageTemplateParser(resolver);
+        Map<I18nKey, MessageTemplate> templates = parser.parseTemplates(entries);
+        return new ImmutableI18nMessagePack(templates, parser, unresolvedMessageHandler, messageKeyGenerator);
     }
 }

@@ -1,6 +1,7 @@
 package com.coditory.quark.i18n;
 
 import com.coditory.quark.i18n.loader.I18nLoader;
+import com.coditory.quark.i18n.loader.I18nTemplates;
 import com.coditory.quark.i18n.loader.WatchableI18nLoader;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,7 +18,7 @@ import static java.util.Objects.requireNonNull;
 final class AggregatedI18nLoader implements WatchableI18nLoader {
     private final List<I18nLoader> loaders = new ArrayList<>();
     private final Map<I18nKey, String> currentEntries = new LinkedHashMap<>();
-    private final ConcurrentHashMap<I18nLoader, Map<I18nKey, String>> cachedResults = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<I18nLoader, List<I18nTemplates>> cachedResults = new ConcurrentHashMap<>();
     private final Set<I18nLoaderChangeListener> listeners = new LinkedHashSet<>();
     private boolean watching = false;
 
@@ -64,12 +65,12 @@ final class AggregatedI18nLoader implements WatchableI18nLoader {
         }
     }
 
-    private synchronized void onEntriesChange(I18nLoader loader, Map<I18nKey, String> entries) {
+    private synchronized void onEntriesChange(I18nLoader loader, List<I18nTemplates> entries) {
         cachedResults.put(loader, entries);
-        Map<I18nKey, String> result = loaders.stream()
-                .map(l -> cachedResults.getOrDefault(l, Map.of()))
-                .reduce(new LinkedHashMap<>(), (m, e) -> {
-                    m.putAll(e);
+        List<I18nTemplates> result = loaders.stream()
+                .map(l -> cachedResults.getOrDefault(l, List.of()))
+                .reduce(new ArrayList<>(), (m, e) -> {
+                    m.addAll(e);
                     return m;
                 });
         for (I18nLoaderChangeListener listener : listeners) {
@@ -91,18 +92,18 @@ final class AggregatedI18nLoader implements WatchableI18nLoader {
 
     @Override
     @NotNull
-    public synchronized Map<I18nKey, String> load() {
+    public synchronized List<I18nTemplates> load() {
         appendCurrentEntries();
         return loaders.stream()
                 .map(this::load)
-                .reduce(new LinkedHashMap<>(), (m, e) -> {
-                    m.putAll(e);
-                    return m;
+                .reduce(new ArrayList<>(), (result, e) -> {
+                    result.addAll(e);
+                    return result;
                 });
     }
 
-    private Map<I18nKey, String> load(I18nLoader loader) {
-        Map<I18nKey, String> entries = loader.load();
+    private List<I18nTemplates> load(I18nLoader loader) {
+        List<I18nTemplates> entries = loader.load();
         cachedResults.put(loader, entries);
         return entries;
     }
@@ -110,9 +111,11 @@ final class AggregatedI18nLoader implements WatchableI18nLoader {
     private void appendCurrentEntries() {
         if (!currentEntries.isEmpty()) {
             Map<I18nKey, String> copy = new LinkedHashMap<>(currentEntries);
-            I18nLoader loader = () -> copy;
+            I18nTemplates templates = new I18nTemplates(copy);
+            List<I18nTemplates> result = List.of(templates);
+            I18nLoader loader = () -> result;
             loaders.add(loader);
-            cachedResults.put(loader, copy);
+            cachedResults.put(loader, result);
             currentEntries.clear();
         }
     }

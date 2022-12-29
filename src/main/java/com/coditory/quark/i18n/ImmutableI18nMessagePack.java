@@ -3,12 +3,10 @@ package com.coditory.quark.i18n;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 
@@ -16,26 +14,31 @@ final class ImmutableI18nMessagePack implements I18nMessagePack {
     private final Map<I18nKey, MessageTemplate> templates;
     private final MessageTemplateParser parser;
     private final I18nUnresolvedMessageHandler unresolvedMessageHandler;
+    private final I18nPath queryPrefix;
     private final I18nKeyGenerator keyGenerator;
-    private final List<I18nPath> prefixes;
 
     ImmutableI18nMessagePack(
             Map<I18nKey, MessageTemplate> templates,
             MessageTemplateParser parser,
             I18nUnresolvedMessageHandler unresolvedMessageHandler,
+            I18nKeyGenerator keyGenerator
+    ) {
+        this(templates, parser, unresolvedMessageHandler, keyGenerator, null);
+    }
+
+    private ImmutableI18nMessagePack(
+            Map<I18nKey, MessageTemplate> templates,
+            MessageTemplateParser parser,
+            I18nUnresolvedMessageHandler unresolvedMessageHandler,
             I18nKeyGenerator keyGenerator,
-            List<I18nPath> prefixes
+            I18nPath queryPrefix
     ) {
         expectNonNull(templates, "templates");
-        expectNonNull(parser, "parser");
-        expectNonNull(unresolvedMessageHandler, "unresolvedMessageHandler");
-        expectNonNull(keyGenerator, "keyGenerator");
-        expectNonNull(prefixes, "prefixes");
         this.templates = Map.copyOf(templates);
-        this.parser = parser;
-        this.unresolvedMessageHandler = unresolvedMessageHandler;
-        this.keyGenerator = keyGenerator;
-        this.prefixes = List.copyOf(prefixes);
+        this.parser = expectNonNull(parser, "parser");
+        this.unresolvedMessageHandler = expectNonNull(unresolvedMessageHandler, "unresolvedMessageHandler");
+        this.keyGenerator = expectNonNull(keyGenerator, "keyGenerator");
+        this.queryPrefix = queryPrefix;
     }
 
     @NotNull
@@ -56,20 +59,42 @@ final class ImmutableI18nMessagePack implements I18nMessagePack {
                 : result;
     }
 
+    @NotNull
+    @Override
+    public String getMessage(@NotNull I18nKey key, @NotNull Map<String, Object> args) {
+        expectNonNull(key, "key");
+        expectNonNull(args, "args");
+        String result = getMessageOrNull(key, args);
+        return result == null
+                ? unresolvedMessageHandler.onUnresolvedMessage(key, args)
+                : result;
+    }
+
     @Override
     @Nullable
     public String getMessageOrNull(@NotNull I18nKey key, Object... args) {
         expectNonNull(key, "key");
         expectNonNull(args, "args");
-        I18nMessages messages = localize(key.locale());
-        ExpressionContext context = new ExpressionContext(Arrays.asList(args), messages);
-        return keyGenerator.keys(prefixes, key)
-                .stream()
+        return getTemplate(key)
+                .map(message -> message.resolve(key.locale(), args))
+                .orElse(null);
+    }
+
+    @Override
+    @Nullable
+    public String getMessageOrNull(@NotNull I18nKey key, @NotNull Map<String, Object> args) {
+        expectNonNull(key, "key");
+        expectNonNull(args, "args");
+        return getTemplate(key)
+                .map(message -> message.resolve(key.locale(), args))
+                .orElse(null);
+    }
+
+    private Optional<MessageTemplate> getTemplate(I18nKey key) {
+        return keyGenerator.keys(key, queryPrefix).stream()
                 .map(templates::get)
                 .filter(Objects::nonNull)
-                .map(message -> message.resolve(context))
-                .findFirst()
-                .orElse(null);
+                .findFirst();
     }
 
     @NotNull
@@ -78,19 +103,26 @@ final class ImmutableI18nMessagePack implements I18nMessagePack {
         expectNonNull(locale, "locale");
         expectNonNull(expression, "expression");
         expectNonNull(args, "args");
-        I18nMessages messages = localize(locale);
-        ExpressionContext context = new ExpressionContext(Arrays.asList(args), messages);
-        Object value = parser.parse(expression)
-                .resolve(context);
+        Object value = parser.parseTemplate(locale, expression)
+                .resolve(locale, args);
+        return Objects.toString(value);
+    }
+
+    @NotNull
+    @Override
+    public String format(@NotNull Locale locale, @NotNull String expression, @NotNull Map<String, Object> args) {
+        expectNonNull(locale, "locale");
+        expectNonNull(expression, "expression");
+        expectNonNull(args, "args");
+        Object value = parser.parseTemplate(locale, expression)
+                .resolve(locale, args);
         return Objects.toString(value);
     }
 
     @Override
     @NotNull
-    public I18nMessagePack addPrefix(@NotNull String prefix) {
+    public I18nMessagePack withQueryPrefix(@NotNull String prefix) {
         I18nPath path = I18nPath.of(prefix);
-        List<I18nPath> prefixes = new ArrayList<>(this.prefixes);
-        prefixes.add(path);
-        return new ImmutableI18nMessagePack(templates, parser, unresolvedMessageHandler, keyGenerator, prefixes);
+        return new ImmutableI18nMessagePack(templates, parser, unresolvedMessageHandler, keyGenerator, path);
     }
 }

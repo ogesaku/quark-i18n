@@ -1,32 +1,41 @@
 package com.coditory.quark.i18n;
 
+import com.coditory.quark.i18n.loader.I18nTemplates;
+
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 
-public final class MessageTemplateParser {
-    private final ExpressionParser expressionParser;
+final class MessageTemplateParser {
+    private final ReferenceResolver referenceResolver;
 
-    MessageTemplateParser(FilterResolver formatter) {
-        expectNonNull(formatter, "formatterResolver");
-        this.expressionParser = new ExpressionParser(formatter);
+    public MessageTemplateParser(ReferenceResolver referenceResolver) {
+        this.referenceResolver = expectNonNull(referenceResolver, "referenceResolver");
     }
 
-    Map<I18nKey, MessageTemplate> parseTemplates(I18nMessageTemplatesPack messages) {
+    Map<I18nKey, MessageTemplate> parseTemplates(List<I18nTemplates> bundles) {
         Map<I18nKey, MessageTemplate> result = new HashMap<>();
-        Map<String, MessageTemplate> templates = new HashMap<>();
-        for (Map.Entry<I18nKey, String> entry : messages.entries()) {
-            I18nKey key = entry.getKey();
-            String value = entry.getValue();
-            MessageTemplate template = templates.computeIfAbsent(value, this::parse);
-            result.put(key, template);
+        for (I18nTemplates bundle : bundles) {
+            for (Map.Entry<I18nKey, String> entry : bundle.templates().entrySet()) {
+                I18nKey key = entry.getKey();
+                String value = entry.getValue();
+                MessageTemplate template = parseTemplate(key, value);
+                result.put(key, template);
+            }
         }
         return result;
     }
 
-    public MessageTemplate parse(String expression) {
-        Expression parsed = expressionParser.parse(expression);
-        return new MessageTemplate(expression, parsed);
+    MessageTemplate parseTemplate(I18nKey key, String template) {
+        template = referenceResolver.resolveReferences(key, template);
+        return MessageTemplate.parse(template);
+    }
+
+    MessageTemplate parseTemplate(Locale locale, String template) {
+        template = referenceResolver.resolveReferences(locale, template);
+        return MessageTemplate.parse(template);
     }
 }

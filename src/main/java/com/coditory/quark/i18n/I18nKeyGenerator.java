@@ -1,75 +1,68 @@
 package com.coditory.quark.i18n;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.Arrays;
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
-import static com.coditory.quark.i18n.I18NLocaleGeneratorI18n.relaxedLocaleGenerator;
-import static com.coditory.quark.i18n.I18NLocaleGeneratorI18n.strictLocalGenerator;
-import static com.coditory.quark.i18n.I18nPathGenerator.relaxedPathGenerator;
-import static com.coditory.quark.i18n.I18nPathGenerator.strictPathGenerator;
-import static com.coditory.quark.i18n.Preconditions.expectNonNull;
+final class I18nKeyGenerator {
+    private final List<Locale> defaultLocales;
+    private final List<I18nPath> globalPrefixes;
+    private final LocaleResolver localeResolver;
 
-public interface  I18nKeyGenerator {
-    @NotNull
-    static I18nKeyGenerator relaxedI18nKeyGenerator() {
-        return combine(
-                relaxedLocaleGenerator(),
-                relaxedPathGenerator()
-        );
+    public I18nKeyGenerator(Locale defaultLocale, List<I18nPath> globalPrefixes, LocaleResolver localeResolver) {
+        this.defaultLocales = defaultLocale != null
+                ? localeResolver.getLocaleHierarchy(defaultLocale)
+                : List.of();
+        this.globalPrefixes = globalPrefixes;
+        this.localeResolver = localeResolver;
     }
 
-    @NotNull
-    static I18nKeyGenerator relaxedI18nKeyGenerator(@Nullable Locale defaultLocale) {
-        expectNonNull(defaultLocale, "defaultLocale");
-        return combine(
-                relaxedLocaleGenerator(defaultLocale),
-                relaxedPathGenerator()
-        );
+    List<I18nKey> keys(I18nKey key) {
+        return keys(key, List.of());
     }
 
-    @NotNull
-    static I18nKeyGenerator strictI18nKeyGenerator() {
-        return combine(
-                strictLocalGenerator(),
-                strictPathGenerator()
-        );
+    List<I18nKey> keys(I18nKey key, I18nPath prefix) {
+        return prefix == null || prefix.isRoot()
+                ? keys(key)
+                : keys(key, List.of(prefix));
     }
 
-    @NotNull
-    static I18nKeyGenerator combine(I18nKeyGenerator... generators) {
-        expectNonNull(generators, "generators");
-        return new CombiningI18nKeyGenerator(Arrays.asList(generators));
-    }
-
-    @NotNull
-    List<I18nKey> keys(@NotNull List<I18nPath> prefixes, @NotNull I18nKey key);
-}
-
-class CombiningI18nKeyGenerator implements I18nKeyGenerator {
-    private final List<I18nKeyGenerator> generators;
-
-    public CombiningI18nKeyGenerator(@NotNull List<I18nKeyGenerator> generators) {
-        this.generators = List.copyOf(generators);
-    }
-
-    @NotNull
-    @Override
-    public List<I18nKey> keys(@NotNull List<I18nPath> prefixes, @NotNull I18nKey key) {
-        expectNonNull(prefixes, "prefixes");
-        expectNonNull(key, "key");
-        Set<I18nKey> result = new LinkedHashSet<>();
-        result.add(key);
-        for (I18nKeyGenerator generator : generators) {
-            for (I18nKey k : result) {
-                result.addAll(generator.keys(prefixes, k));
+    List<I18nKey> keys(I18nKey key, List<I18nPath> prefixes) {
+        List<Locale> locales = localeResolver.getLocaleHierarchy(key.locale());
+        I18nPath path = key.path();
+        List<I18nKey> keys = new ArrayList<>(6 * (1 + prefixes.size() + globalPrefixes.size()));
+        // locales x prefix + path
+        for (I18nPath prefix : prefixes) {
+            for (Locale loc : locales) {
+                keys.add(I18nKey.of(loc, prefix.child(path)));
             }
         }
-        return List.copyOf(result);
+        // locales x path
+        for (Locale loc : locales) {
+            keys.add(I18nKey.of(loc, path));
+        }
+        // locales x globalPrefixes
+        for (I18nPath prefix : globalPrefixes) {
+            for (Locale loc : locales) {
+                keys.add(I18nKey.of(loc, prefix.child(path)));
+            }
+        }
+        // defaultLocales x prefix + path
+        for (I18nPath prefix : prefixes) {
+            for (Locale loc : defaultLocales) {
+                keys.add(I18nKey.of(loc, prefix.child(path)));
+            }
+        }
+        // defaultLocales x path
+        for (Locale loc : defaultLocales) {
+            keys.add(I18nKey.of(loc, path));
+        }
+        // defaultLocales x globalPrefixes
+        for (I18nPath prefix : globalPrefixes) {
+            for (Locale loc : defaultLocales) {
+                keys.add(I18nKey.of(loc, prefix.child(path)));
+            }
+        }
+        return keys;
     }
 }

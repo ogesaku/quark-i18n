@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
+import java.util.Map;
 
 import static com.coditory.quark.i18n.I18nMessages.EMPTY_ARGS;
 import static com.coditory.quark.i18n.Preconditions.expectNonBlank;
@@ -24,13 +25,19 @@ public interface I18nMessagePack {
     }
 
     @NotNull
-    I18nMessagePack addPrefix(@NotNull String prefix);
+    I18nMessagePack withQueryPrefix(@NotNull String prefix);
 
     @NotNull
     String getMessage(@NotNull I18nKey key, Object... args);
 
+    @NotNull
+    String getMessage(@NotNull I18nKey key, Map<String, Object> args);
+
     @Nullable
     String getMessageOrNull(@NotNull I18nKey key, Object... args);
+
+    @Nullable
+    String getMessageOrNull(@NotNull I18nKey key, Map<String, Object> args);
 
     @NotNull
     default String getMessage(@NotNull I18nKey key) {
@@ -47,7 +54,16 @@ public interface I18nMessagePack {
         return getMessage(messageKey, args);
     }
 
-    @Nullable
+    @NotNull
+    default String getMessage(@NotNull Locale locale, @NotNull String path, @NotNull Map<String, Object> args) {
+        expectNonNull(locale, "locale");
+        expectNonBlank(path, "path");
+        expectNonNull(args, "args");
+        I18nKey messageKey = I18nKey.of(locale, path);
+        return getMessage(messageKey, args);
+    }
+
+    @NotNull
     default String getMessage(@NotNull Locale locale, @NotNull I18nPath path, Object... args) {
         expectNonNull(locale, "locale");
         expectNonNull(path, "path");
@@ -94,4 +110,7 @@ public interface I18nMessagePack {
 
     @NotNull
     String format(@NotNull Locale locale, @NotNull String template, Object... args);
+
+    @NotNull
+    String format(@NotNull Locale locale, @NotNull String expression, @NotNull Map<String, Object> args);
 }

@@ -1,6 +1,7 @@
 package com.coditory.quark.i18n;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import static com.coditory.quark.i18n.Preconditions.expect;
 
@@ -28,8 +29,12 @@ final class LruCache<K, V> {
         }
         Node node = new Node(key, value);
         map.put(key, node);
-        last.prev = node;
-        node.next = last;
+        if (last != null) {
+            last.prev = node;
+            node.next = last;
+        } else {
+            first = node;
+        }
         last = node;
     }
 
@@ -75,14 +80,29 @@ final class LruCache<K, V> {
         return node.value;
     }
 
+    V computeIfAbsent(K key, Function<K, V> creator) {
+        V value = get(key);
+        // creator can be executed multiple times in case of race condition
+        if (value == null) {
+            value = creator.apply(key);
+            put(key, value);
+        }
+        return value;
+    }
+
     private synchronized void upvote(K key) {
         Node node = map.get(key);
         if (node == last) {
             return;
         }
-        node.next.prev = node.prev;
+        if (node.next != null) {
+            node.next.prev = node.prev;
+        }
         if (node.prev != null) {
             node.prev.next = node.next;
+        }
+        if (node == first) {
+            first = node.prev;
         }
         last.next = node;
         node.prev = last;

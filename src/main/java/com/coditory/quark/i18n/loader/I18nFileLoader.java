@@ -6,8 +6,6 @@ import com.coditory.quark.i18n.loader.FileWatcher.FileChangedEvent;
 import com.coditory.quark.i18n.loader.I18nPathPattern.I18nPathGroups;
 import com.coditory.quark.i18n.parser.I18nParser;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -22,7 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Collections.unmodifiableMap;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
 public class I18nFileLoader implements WatchableI18nLoader {
@@ -34,7 +32,7 @@ public class I18nFileLoader implements WatchableI18nLoader {
     private final I18nPath staticPrefix;
     private final FileSystem fileSystem;
     private final Map<String, CachedResource> cachedResources = new LinkedHashMap<>();
-    private final Map<String, Map<I18nKey, String>> cachedEntries = new LinkedHashMap<>();
+    private final Map<String, I18nTemplates> cachedEntries = new LinkedHashMap<>();
     private Thread watchThread;
 
     I18nFileLoader(
@@ -55,29 +53,34 @@ public class I18nFileLoader implements WatchableI18nLoader {
 
     @NotNull
     @Override
-    public synchronized Map<I18nKey, String> load() {
-        Map<I18nKey, String> result = new LinkedHashMap<>();
+    public synchronized List<I18nTemplates> load() {
+        List<I18nTemplates> result = new ArrayList<>();
         for (I18nPathPattern pathPattern : pathPatterns) {
             List<Resource> resources = scanFiles(pathPattern);
             for (Resource resource : resources) {
-                Map<I18nKey, String> parsed = load(resource, pathPattern);
-                result.putAll(parsed);
+                I18nTemplates templates = load(pathPattern, resource);
+                result.add(templates);
             }
         }
-        return unmodifiableMap(result);
+        return unmodifiableList(result);
     }
 
-    private Map<I18nKey, String> load(Resource resource, I18nPathPattern pathPattern) {
+    private I18nTemplates load(I18nPathPattern pathPattern, Resource resource) {
         I18nPathGroups matchedGroups = pathPattern.matchGroups(resource.name());
         return load(resource, matchedGroups);
     }
 
-    private Map<I18nKey, String> load(Resource resource, I18nPathGroups matchedGroups) {
-        Map<I18nKey, String> parsed = parseFile(resource, matchedGroups);
+    private I18nTemplates load(Resource resource, I18nPathGroups matchedGroups) {
+        Locale locale = matchedGroups.locale();
+        I18nPath prefix = matchedGroups.path() != null
+                ? staticPrefix.child(matchedGroups.path())
+                : I18nPath.root();
+        Map<I18nKey, String> parsed = parseFile(locale, prefix, resource);
         String urlString = resource.url().toString();
-        cachedEntries.put(urlString, parsed);
+        I18nTemplates result = new I18nTemplates(parsed, prefix);
+        cachedEntries.put(urlString, result);
         cachedResources.put(urlString, new CachedResource(resource, matchedGroups));
-        return unmodifiableMap(parsed);
+        return result;
     }
 
     private List<Resource> scanFiles(I18nPathPattern pathPattern) {
@@ -86,17 +89,13 @@ public class I18nFileLoader implements WatchableI18nLoader {
                 : ResourceScanner.scanFiles(fileSystem, pathPattern);
     }
 
-    private Map<I18nKey, String> parseFile(Resource resource, I18nPathGroups matchedGroups) {
+    private Map<I18nKey, String> parseFile(Locale locale, I18nPath prefix, Resource resource) {
         String extension = getExtension(resource.name());
         I18nParser parser = parsersByExtension.getOrDefault(extension, this.parser);
         if (parser == null) {
             throw new I18nLoadException("No file parser defined for: " + resource.name());
         }
         String content = readFile(resource);
-        Locale locale = matchedGroups.locale();
-        I18nPath prefix = matchedGroups.path() == null
-                ? staticPrefix
-                : staticPrefix.child(matchedGroups.path());
         try {
             return parser.parse(content, prefix, locale);
         } catch (Throwable e) {
@@ -172,11 +171,9 @@ public class I18nFileLoader implements WatchableI18nLoader {
             }
             case CREATE -> loadToCache(resource);
         }
-        Map<I18nKey, String> entries = cachedEntries.values().stream()
-                .reduce(new LinkedHashMap<>(), (acc, map) -> {
-                    acc.putAll(map);
-                    return acc;
-                });
+        List<I18nTemplates> entries = cachedEntries.values()
+                .stream()
+                .toList();
         for (I18nLoaderChangeListener listener : listeners) {
             listener.onChange(entries);
         }

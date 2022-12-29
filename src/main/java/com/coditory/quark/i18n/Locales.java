@@ -86,6 +86,32 @@ public final class Locales {
         return AVAILABLE_LOCALES.contains(locale);
     }
 
+    public static boolean isMoreSpecific(@NotNull Locale locale, @NotNull Locale other) {
+        expectNonNull(locale, "locale");
+        expectNonNull(other, "other");
+        if (!locale.getLanguage().equals(other.getLanguage())) {
+            return false;
+        }
+        String country = locale.getCountry();
+        if (!country.isEmpty() && !country.equals(other.getLanguage())) {
+            return false;
+        }
+        String variant = locale.getVariant();
+        return variant.isEmpty() || variant.equals(other.getLanguage());
+    }
+
+    @Nullable
+    public static Locale generalize(@NotNull Locale locale) {
+        expectNonNull(locale, "locale");
+        if (!locale.getVariant().isEmpty()) {
+            return new Locale(locale.getLanguage(), locale.getCountry());
+        }
+        if (!locale.getCountry().isEmpty()) {
+            return new Locale(locale.getLanguage());
+        }
+        return null;
+    }
+
     @NotNull
     public static Locale parseLocale(@NotNull String value) {
         expectNonNull(value, "value");

@@ -1,12 +1,11 @@
 package com.coditory.quark.i18n.loader;
 
-import com.coditory.quark.i18n.I18nKey;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
+import java.util.List;
 
 @FunctionalInterface
 public interface I18nLoader {
     @NotNull
-    Map<I18nKey, String> load();
+    List<I18nTemplates> load();
 }
