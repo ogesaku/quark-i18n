@@ -37,4 +37,10 @@ public final class I18nMessagePackFactory {
                 .scanClassPath(classLoader, firstPattern, others)
                 .build();
     }
+
+    @NotNull
+    public static I18nMessagePack emptyMessagePack() {
+        return I18nMessagePack.builder()
+                .build();
+    }
 }

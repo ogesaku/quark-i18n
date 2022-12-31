@@ -10,40 +10,42 @@ import java.util.concurrent.ConcurrentHashMap;
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 
 final class MessageTemplate {
-    static MessageTemplate parse(String template) {
+    static MessageTemplate parse(String template, ArgumentResolver argumentResolver) {
         try {
             MessageFormat messageFormat = new MessageFormat(template);
-            return new MessageTemplate(template, messageFormat);
+            return new MessageTemplate(template, messageFormat, argumentResolver);
         } catch (Exception e) {
             throw new IllegalArgumentException("Could not parse message template: " + template, e);
         }
     }
 
     private final ConcurrentHashMap<Locale, MessageFormat> formats = new ConcurrentHashMap<>();
+    private final ArgumentResolver argumentResolver;
     private final String template;
     private final MessageFormat messageFormat;
     private final boolean dynamic;
 
-    private MessageTemplate(String template, MessageFormat messageFormat) {
-        expectNonNull(template, "template");
-        expectNonNull(messageFormat, "messageFormat");
-        this.template = template;
-        this.messageFormat = messageFormat;
+    private MessageTemplate(String template, MessageFormat messageFormat, ArgumentResolver argumentResolver) {
+        this.template = expectNonNull(template, "template");
+        this.messageFormat = expectNonNull(messageFormat, "messageFormat");
         this.dynamic = messageFormat.getFormats().length > 0;
+        this.argumentResolver = expectNonNull(argumentResolver, "argumentResolver");
     }
 
     public String resolve(Locale locale, Object[] args) {
         expectNonNull(locale, "locale");
         expectNonNull(args, "args");
         MessageFormat messageFormat = getMessageFormat(locale);
-        return messageFormat.format(args);
+        Object[] resolvedArgs = argumentResolver.resolveArguments(args);
+        return messageFormat.format(resolvedArgs);
     }
 
     public String resolve(Locale locale, Map<String, Object> args) {
         expectNonNull(locale, "locale");
         expectNonNull(args, "args");
         MessageFormat messageFormat = getMessageFormat(locale);
-        return messageFormat.format(args);
+        Map<String, Object> resolvedArgs = argumentResolver.resolveArguments(args);
+        return messageFormat.format(resolvedArgs);
     }
 
     private MessageFormat getMessageFormat(Locale locale) {

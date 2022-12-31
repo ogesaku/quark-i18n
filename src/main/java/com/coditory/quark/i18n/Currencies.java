@@ -3,11 +3,16 @@ package com.coditory.quark.i18n;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.util.Currency;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
+import static java.util.Collections.unmodifiableMap;
 
 public final class Currencies {
     /**
@@ -45,8 +50,48 @@ public final class Currencies {
      */
     public static final Currency PLN = Currency.getInstance("PLN");
 
+    private static final Map<Currency, Locale> LOCALE_BY_CURRENCY;
+
+    static {
+        Map<Currency, Locale> localeByCurrency = new HashMap<>();
+        localeByCurrency.put(USD, Locales.EN_US);
+        localeByCurrency.put(EUR, Locales.DE_DE);
+        for (Locale locale : NumberFormat.getAvailableLocales()) {
+            Currency currency = NumberFormat.getCurrencyInstance(locale).getCurrency();
+            localeByCurrency.putIfAbsent(currency, locale);
+        }
+        LOCALE_BY_CURRENCY = unmodifiableMap(localeByCurrency);
+    }
+
     private Currencies() {
         throw new UnsupportedOperationException("Do not instantiate utility class");
+    }
+
+    @NotNull
+    public static String formatByCurrency(@NotNull BigDecimal amount, @NotNull Currency currency) {
+        Locale currencyLocale = LOCALE_BY_CURRENCY.get(currency);
+        if (currencyLocale == null) {
+            throw new IllegalArgumentException("Unrecognized currency: " + currency);
+        }
+        return NumberFormat.getCurrencyInstance(currencyLocale).format(amount);
+    }
+
+    @NotNull
+    public static String formatByCurrency(long amount, @NotNull Currency currency) {
+        Locale currencyLocale = LOCALE_BY_CURRENCY.get(currency);
+        if (currencyLocale == null) {
+            throw new IllegalArgumentException("Missing locale for currency: " + currency);
+        }
+        return NumberFormat.getCurrencyInstance(currencyLocale).format(amount);
+    }
+
+    @NotNull
+    public static String formatByCurrency(double amount, @NotNull Currency currency) {
+        Locale currencyLocale = LOCALE_BY_CURRENCY.get(currency);
+        if (currencyLocale == null) {
+            throw new IllegalArgumentException("Missing locale for currency: " + currency);
+        }
+        return NumberFormat.getCurrencyInstance(currencyLocale).format(amount);
     }
 
     @NotNull

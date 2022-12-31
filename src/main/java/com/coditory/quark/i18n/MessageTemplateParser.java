@@ -11,9 +11,11 @@ import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 
 final class MessageTemplateParser {
     private final ReferenceResolver referenceResolver;
+    private final ArgumentResolver argumentResolver;
 
-    public MessageTemplateParser(ReferenceResolver referenceResolver) {
+    public MessageTemplateParser(ReferenceResolver referenceResolver, ArgumentResolver argumentResolver) {
         this.referenceResolver = expectNonNull(referenceResolver, "referenceResolver");
+        this.argumentResolver = expectNonNull(argumentResolver, "argumentResolver");
     }
 
     Map<I18nKey, MessageTemplate> parseTemplates(List<I18nTemplates> bundles) {
@@ -30,12 +32,13 @@ final class MessageTemplateParser {
     }
 
     MessageTemplate parseTemplate(I18nKey key, String template) {
+        template = template.trim();
         template = referenceResolver.resolveReferences(key, template);
-        return MessageTemplate.parse(template);
+        return MessageTemplate.parse(template, argumentResolver);
     }
 
     MessageTemplate parseTemplate(Locale locale, String template) {
         template = referenceResolver.resolveReferences(locale, template);
-        return MessageTemplate.parse(template);
+        return MessageTemplate.parse(template, argumentResolver);
     }
 }

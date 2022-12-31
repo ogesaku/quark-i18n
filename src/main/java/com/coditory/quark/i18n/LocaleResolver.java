@@ -29,8 +29,8 @@ final class LocaleResolver {
     private LocaleResolver(Locale defaultLocale, Set<Locale> availableLocales) {
         this.defaultLocale = defaultLocale;
         this.availableLocales = Set.copyOf(availableLocales);
-        this.cache = new LruCache<>(availableLocales.size() * 10);
-        this.hierarchyCache = new LruCache<>(availableLocales.size() * 10);
+        this.cache = new LruCache<>(availableLocales.size() * 10 + 1);
+        this.hierarchyCache = new LruCache<>(availableLocales.size() * 10 + 1);
     }
 
     I18nKey resolveQueryLocale(I18nKey key) {

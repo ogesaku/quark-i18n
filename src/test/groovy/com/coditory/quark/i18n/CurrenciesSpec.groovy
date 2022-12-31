@@ -54,4 +54,18 @@ class CurrenciesSpec extends Specification {
             IllegalArgumentException e = thrown(IllegalArgumentException)
             e.message == "Could not parse Currency: 'XYZ'"
     }
+
+    @Unroll
+    def "should format amount by currency: #currency"() {
+        expect:
+            Currencies.formatByCurrency(1234.5, currency) == expectedFloat
+            Currencies.formatByCurrency(BigDecimal.valueOf(1234.5), currency) == expectedFloat
+            Currencies.formatByCurrency(1234, currency) == expectedLong
+            Currencies.formatByCurrency(-1234, currency) == expectedNegative
+        where:
+            currency       || expectedFloat | expectedLong  | expectedNegative
+            Currencies.PLN || "1 234,50 zł" | "1 234,00 zł" | "-1 234,00 zł"
+            Currencies.EUR || "1.234,50 €"  | "1.234,00 €"  | "-1.234,00 €"
+            Currencies.USD || "\$1,234.50"  | "\$1,234.00"  | "-\$1,234.00"
+    }
 }

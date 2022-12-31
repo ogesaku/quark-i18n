@@ -11,7 +11,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
+import static com.coditory.quark.i18n.I18nArgTransformers.javaTimeI18nArgTransformers;
 import static com.coditory.quark.i18n.Preconditions.expectNonBlank;
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 
@@ -19,6 +21,8 @@ public final class I18nMessagePackBuilder {
     private final AggregatedI18nLoader loader = new AggregatedI18nLoader();
     private final List<I18nPath> referenceFallbackPaths = new ArrayList<>();
     private final List<I18nPath> messageFallbackPaths = new ArrayList<>();
+    private final List<I18nArgTransformer<?>> argTransformers = new ArrayList<>();
+    private boolean useJava8ArgumentTransformers = true;
     private I18nUnresolvedMessageHandler unresolvedMessageHandler = I18nUnresolvedMessageHandler.throwError();
     private Locale defaultLocale;
 
@@ -62,6 +66,20 @@ public final class I18nMessagePackBuilder {
         expectNonNull(classLoader, "classLoader");
         I18nLoader loader = I18nFileLoaderFactory.scanClassPath(classLoader, firstPattern, others);
         this.loader.addLoader(loader);
+        return this;
+    }
+
+    @NotNull
+    public <T> I18nMessagePackBuilder addArgumentTransformer(Class<T> type, Function<T, Object> transform) {
+        expectNonNull(type, "type");
+        expectNonNull(transform, "transform");
+        this.argTransformers.add(I18nArgTransformer.of(type, transform));
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder disableJava8ArgumentTransformers() {
+        this.useJava8ArgumentTransformers = false;
         return this;
     }
 
@@ -212,10 +230,24 @@ public final class I18nMessagePackBuilder {
     private I18nMessagePack build(List<I18nTemplates> entries) {
         LocaleResolver localeResolver = LocaleResolver.of(defaultLocale, entries);
         I18nKeyGenerator messageKeyGenerator = new I18nKeyGenerator(defaultLocale, messageFallbackPaths, localeResolver);
-        I18nKeyGenerator referenceKeyGenerator = new I18nKeyGenerator(defaultLocale, referenceFallbackPaths, localeResolver);
-        ReferenceResolver resolver = new ReferenceResolver(entries, referenceKeyGenerator);
-        MessageTemplateParser parser = new MessageTemplateParser(resolver);
+        MessageTemplateParser parser = buildMessageTemplateParser(entries, localeResolver);
         Map<I18nKey, MessageTemplate> templates = parser.parseTemplates(entries);
         return new ImmutableI18nMessagePack(templates, parser, unresolvedMessageHandler, messageKeyGenerator);
+    }
+
+    private MessageTemplateParser buildMessageTemplateParser(List<I18nTemplates> entries, LocaleResolver localeResolver) {
+        I18nKeyGenerator referenceKeyGenerator = new I18nKeyGenerator(defaultLocale, referenceFallbackPaths, localeResolver);
+        ReferenceResolver referenceResolver = new ReferenceResolver(entries, referenceKeyGenerator);
+        ArgumentResolver argumentResolver = buildArgumentResolver();
+        return new MessageTemplateParser(referenceResolver, argumentResolver);
+    }
+
+    private ArgumentResolver buildArgumentResolver() {
+        List<I18nArgTransformer<?>> result = new ArrayList<>();
+        if (useJava8ArgumentTransformers) {
+            result.addAll(javaTimeI18nArgTransformers());
+        }
+        result.addAll(argTransformers);
+        return ArgumentResolver.of(result);
     }
 }
