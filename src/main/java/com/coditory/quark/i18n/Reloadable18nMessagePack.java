@@ -1,6 +1,6 @@
 package com.coditory.quark.i18n;
 
-import com.coditory.quark.i18n.loader.I18nTemplates;
+import com.coditory.quark.i18n.loader.I18nTemplatesBundle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,11 +12,11 @@ import java.util.function.Function;
 import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 
 public final class Reloadable18nMessagePack implements I18nMessagePack {
-    private final Function<List<I18nTemplates>, I18nMessagePack> i18nMessagePackCreator;
+    private final Function<List<I18nTemplatesBundle>, I18nMessagePack> i18nMessagePackCreator;
     private final AggregatedI18nLoader loader;
     private volatile I18nMessagePack i18nMessagePack;
 
-    Reloadable18nMessagePack(AggregatedI18nLoader loader, Function<List<I18nTemplates>, I18nMessagePack> i18nMessagePackCreator) {
+    Reloadable18nMessagePack(AggregatedI18nLoader loader, Function<List<I18nTemplatesBundle>, I18nMessagePack> i18nMessagePackCreator) {
         expectNonNull(i18nMessagePackCreator, "i18nMessagePackCreator");
         expectNonNull(loader, "loader");
         this.i18nMessagePackCreator = i18nMessagePackCreator;
@@ -28,8 +28,8 @@ public final class Reloadable18nMessagePack implements I18nMessagePack {
         reload(loader.load());
     }
 
-    private void reload(List<I18nTemplates> entries) {
-        this.i18nMessagePack = i18nMessagePackCreator.apply(entries);
+    private void reload(List<I18nTemplatesBundle> bundles) {
+        this.i18nMessagePack = i18nMessagePackCreator.apply(bundles);
     }
 
     public synchronized void startWatching() {

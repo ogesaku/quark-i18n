@@ -1,6 +1,6 @@
 package com.coditory.quark.i18n;
 
-import com.coditory.quark.i18n.loader.I18nTemplates;
+import com.coditory.quark.i18n.loader.I18nTemplatesBundle;
 
 import java.util.HashMap;
 import java.util.List;
@@ -13,14 +13,14 @@ import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 import static java.util.Collections.unmodifiableMap;
 
 final class ReferenceResolver {
-    private final Map<I18nKey, I18nTemplates> bundles;
+    private final Map<I18nKey, I18nTemplatesBundle> bundles;
     private final Map<I18nKey, String> templates;
     private final I18nKeyGenerator keyGenerator;
 
-    ReferenceResolver(List<I18nTemplates> entries, I18nKeyGenerator keyGenerator) {
+    ReferenceResolver(List<I18nTemplatesBundle> entries, I18nKeyGenerator keyGenerator) {
         Map<I18nKey, String> templates = new HashMap<>();
-        Map<I18nKey, I18nTemplates> bundles = new HashMap<>();
-        for (I18nTemplates templateEntry : entries) {
+        Map<I18nKey, I18nTemplatesBundle> bundles = new HashMap<>();
+        for (I18nTemplatesBundle templateEntry : entries) {
             templates.putAll(templateEntry.templates());
             templateEntry.templates().keySet()
                     .forEach(key -> bundles.put(key, templateEntry));
@@ -43,7 +43,7 @@ final class ReferenceResolver {
             return template;
         }
         if (iteration + 1 > 10) {
-            throw new IllegalArgumentException("Detected potential cycle in message references");
+            throw new IllegalArgumentException("Detected potential cyclic reference");
         }
         StringBuilder result = new StringBuilder();
         StringBuilder reference = new StringBuilder();
@@ -72,20 +72,29 @@ final class ReferenceResolver {
                 throw new IllegalArgumentException("Unexpected '{'");
             } else if (c == '{' && dollar) {
                 brace = true;
-            } else if ((c == '}' && brace) || (c == ' ' && dollar)) {
+            } else if ((c == '}' && brace) || (dollar && !brace && !isReferenceChar(c)) || (!it.hasNext() && dollar && !brace)) {
+                if (!it.hasNext() && isReferenceChar(c)) {
+                    reference.appendCodePoint(c);
+                }
                 I18nPath referencePath = I18nPath.of(reference.toString());
                 String referenceTemplate = resolveReference(locale, path, referencePath);
                 result.append(referenceTemplate);
+                if (c != '}' && it.hasNext()) {
+                    result.appendCodePoint(c);
+                }
                 reference = new StringBuilder();
                 dollar = false;
                 brace = false;
             } else if (dollar) {
-                if (!Character.isWhitespace(c)) {
-                    reference.append(c);
+                if (isReferenceChar(c)) {
+                    reference.appendCodePoint(c);
                 }
             } else {
                 result.appendCodePoint(c);
             }
+        }
+        if (dollar || brace) {
+            throw new IllegalArgumentException("Invalid reference");
         }
         if (escaped) {
             result.append('\\');
@@ -95,9 +104,13 @@ final class ReferenceResolver {
                 : template;
     }
 
+    private boolean isReferenceChar(int codePoint) {
+        return codePoint == '-' || codePoint == '_' || codePoint == '.' || Character.isLetterOrDigit(codePoint);
+    }
+
     private String resolveReference(Locale locale, I18nPath sourcePath, I18nPath referencePath) {
         I18nKey referenceKey = I18nKey.of(locale, referencePath);
-        I18nTemplates bundle = sourcePath != null
+        I18nTemplatesBundle bundle = sourcePath != null
                 ? bundles.get(I18nKey.of(locale, sourcePath))
                 : null;
         List<I18nKey> keys = bundle != null && bundle.prefix() != null

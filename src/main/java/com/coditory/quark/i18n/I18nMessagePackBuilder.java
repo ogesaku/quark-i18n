@@ -2,12 +2,13 @@ package com.coditory.quark.i18n;
 
 import com.coditory.quark.i18n.loader.I18nFileLoaderFactory;
 import com.coditory.quark.i18n.loader.I18nLoader;
-import com.coditory.quark.i18n.loader.I18nTemplates;
+import com.coditory.quark.i18n.loader.I18nTemplatesBundle;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.FileSystem;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -22,7 +23,8 @@ public final class I18nMessagePackBuilder {
     private final List<I18nPath> referenceFallbackPaths = new ArrayList<>();
     private final List<I18nPath> messageFallbackPaths = new ArrayList<>();
     private final List<I18nArgTransformer<?>> argTransformers = new ArrayList<>();
-    private boolean useJava8ArgumentTransformers = true;
+    private boolean transformJava8TimeTypes = true;
+    private boolean normalizeWhitespaces = true;
     private I18nUnresolvedMessageHandler unresolvedMessageHandler = I18nUnresolvedMessageHandler.throwError();
     private Locale defaultLocale;
 
@@ -79,7 +81,13 @@ public final class I18nMessagePackBuilder {
 
     @NotNull
     public I18nMessagePackBuilder disableJava8ArgumentTransformers() {
-        this.useJava8ArgumentTransformers = false;
+        this.transformJava8TimeTypes = false;
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder disableWhiteSpaceNormalization() {
+        this.normalizeWhitespaces = false;
         return this;
     }
 
@@ -136,81 +144,81 @@ public final class I18nMessagePackBuilder {
     }
 
     @NotNull
-    public I18nMessagePackBuilder setReferenceFallbackPaths(@NotNull List<String> paths) {
-        expectNonNull(paths, "paths");
+    public I18nMessagePackBuilder setReferenceFallbackKeyPrefixes(@NotNull List<String> keyPrefixes) {
+        expectNonNull(keyPrefixes, "keyPrefixes");
         this.referenceFallbackPaths.clear();
-        paths.forEach(this::addReferenceFallbackPath);
+        keyPrefixes.forEach(this::addReferenceFallbackKeyPrefix);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder setReferenceFallbackPaths(@NotNull String... paths) {
-        expectNonNull(paths, "paths");
+    public I18nMessagePackBuilder setReferenceFallbackKeyPrefixes(@NotNull String... keyPrefixes) {
+        expectNonNull(keyPrefixes, "keyPrefixes");
         this.referenceFallbackPaths.clear();
-        Arrays.stream(paths).forEach(this::addReferenceFallbackPath);
+        Arrays.stream(keyPrefixes).forEach(this::addReferenceFallbackKeyPrefix);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder addReferenceFallbackPath(@NotNull String path) {
-        expectNonBlank(path, "paths");
-        I18nPath i18nPath = I18nPath.of(path);
+    public I18nMessagePackBuilder addReferenceFallbackKeyPrefix(@NotNull String keyPrefix) {
+        expectNonBlank(keyPrefix, "keyPrefix");
+        I18nPath i18nPath = I18nPath.of(keyPrefix);
         this.referenceFallbackPaths.add(i18nPath);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder setMessageFallbackPaths(@NotNull List<String> paths) {
-        expectNonNull(paths, "paths");
+    public I18nMessagePackBuilder setMessageFallbackKeyPrefixes(@NotNull List<String> keyPrefixes) {
+        expectNonNull(keyPrefixes, "keyPrefixes");
         this.messageFallbackPaths.clear();
-        paths.forEach(this::addMessageFallbackPath);
+        keyPrefixes.forEach(this::addMessageFallbackKeyPrefix);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder setMessageFallbackPaths(@NotNull String... paths) {
-        expectNonNull(paths, "paths");
+    public I18nMessagePackBuilder setMessageFallbackKeyPrefixes(@NotNull String... keyPrefixes) {
+        expectNonNull(keyPrefixes, "keyPrefixes");
         this.messageFallbackPaths.clear();
-        Arrays.stream(paths).forEach(this::addMessageFallbackPath);
+        Arrays.stream(keyPrefixes).forEach(this::addMessageFallbackKeyPrefix);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder addMessageFallbackPath(@NotNull String path) {
-        expectNonBlank(path, "paths");
-        I18nPath i18nPath = I18nPath.of(path);
+    public I18nMessagePackBuilder addMessageFallbackKeyPrefix(@NotNull String keyPrefix) {
+        expectNonBlank(keyPrefix, "keyPrefix");
+        I18nPath i18nPath = I18nPath.of(keyPrefix);
         this.messageFallbackPaths.add(i18nPath);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder setFallbackPaths(@NotNull List<String> paths) {
-        expectNonNull(paths, "paths");
-        setMessageFallbackPaths(paths);
-        setReferenceFallbackPaths(paths);
+    public I18nMessagePackBuilder setFallbackKeyPrefixes(@NotNull List<String> keyPrefixes) {
+        expectNonNull(keyPrefixes, "keyPrefixes");
+        setMessageFallbackKeyPrefixes(keyPrefixes);
+        setReferenceFallbackKeyPrefixes(keyPrefixes);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder setFallbackPaths(@NotNull String... paths) {
-        expectNonNull(paths, "paths");
-        setMessageFallbackPaths(paths);
-        setReferenceFallbackPaths(paths);
+    public I18nMessagePackBuilder setFallbackKeyPrefixes(@NotNull String... keyPrefixes) {
+        expectNonNull(keyPrefixes, "keyPrefixes");
+        setMessageFallbackKeyPrefixes(keyPrefixes);
+        setReferenceFallbackKeyPrefixes(keyPrefixes);
         return this;
     }
 
     @NotNull
-    public I18nMessagePackBuilder addFallbackPaths(@NotNull String path) {
-        expectNonBlank(path, "paths");
-        addMessageFallbackPath(path);
-        addReferenceFallbackPath(path);
+    public I18nMessagePackBuilder addFallbackKeyPrefix(@NotNull String keyPrefix) {
+        expectNonBlank(keyPrefix, "keyPrefix");
+        addMessageFallbackKeyPrefix(keyPrefix);
+        addReferenceFallbackKeyPrefix(keyPrefix);
         return this;
     }
 
     @NotNull
     public I18nMessagePack build() {
-        List<I18nTemplates> entries = loader.load();
-        return build(entries);
+        List<I18nTemplatesBundle> bundles = loader.load();
+        return build(bundles);
     }
 
     @NotNull
@@ -227,24 +235,26 @@ public final class I18nMessagePackBuilder {
         return messagePack;
     }
 
-    private I18nMessagePack build(List<I18nTemplates> entries) {
-        LocaleResolver localeResolver = LocaleResolver.of(defaultLocale, entries);
+    private I18nMessagePack build(List<I18nTemplatesBundle> bundles) {
+        bundles = TemplatesBundlePrefixes.prefix(bundles);
+        LocaleResolver localeResolver = LocaleResolver.of(defaultLocale, bundles);
         I18nKeyGenerator messageKeyGenerator = new I18nKeyGenerator(defaultLocale, messageFallbackPaths, localeResolver);
-        MessageTemplateParser parser = buildMessageTemplateParser(entries, localeResolver);
-        Map<I18nKey, MessageTemplate> templates = parser.parseTemplates(entries);
+        MessageTemplateParser parser = buildMessageTemplateParser(bundles, localeResolver);
+        Map<I18nKey, MessageTemplate> templates = parser.parseTemplates(bundles);
         return new ImmutableI18nMessagePack(templates, parser, unresolvedMessageHandler, messageKeyGenerator);
     }
 
-    private MessageTemplateParser buildMessageTemplateParser(List<I18nTemplates> entries, LocaleResolver localeResolver) {
+    private MessageTemplateParser buildMessageTemplateParser(List<I18nTemplatesBundle> bundles, LocaleResolver localeResolver) {
         I18nKeyGenerator referenceKeyGenerator = new I18nKeyGenerator(defaultLocale, referenceFallbackPaths, localeResolver);
-        ReferenceResolver referenceResolver = new ReferenceResolver(entries, referenceKeyGenerator);
+        ReferenceResolver referenceResolver = new ReferenceResolver(bundles, referenceKeyGenerator);
         ArgumentResolver argumentResolver = buildArgumentResolver();
-        return new MessageTemplateParser(referenceResolver, argumentResolver);
+        MessageTemplateNormalizer messageTemplateNormalizer = new MessageTemplateNormalizer(normalizeWhitespaces);
+        return new MessageTemplateParser(referenceResolver, argumentResolver, messageTemplateNormalizer);
     }
 
     private ArgumentResolver buildArgumentResolver() {
         List<I18nArgTransformer<?>> result = new ArrayList<>();
-        if (useJava8ArgumentTransformers) {
+        if (transformJava8TimeTypes) {
             result.addAll(javaTimeI18nArgTransformers());
         }
         result.addAll(argTransformers);

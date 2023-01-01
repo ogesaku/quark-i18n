@@ -8,9 +8,11 @@
 
 - [ICU message formatting](#message-formatting)
 - [Message references](#message-references)
-- Messages resolution with [indexed](./README_FORMAT.md#indexed-argument) and [named](./README_FORMAT.md##named-argument) arguments
+- Messages resolution with [indexed](./README_FORMAT.md#indexed-argument)
+  and [named](./README_FORMAT.md##named-argument) arguments
 - [Type based formatters](#type-based-formatters)
-- [Missing message detection](#devmode)
+- [Missing message detection](#missing-message-detection)
+- [Whitespace normalization](#whitespace-normalization)
 - Splitting big file into multiple smaller ones
 - ...or use single file to define messages for multiple locales
 - Supports multiple file formats: yaml, properties, json
@@ -40,17 +42,17 @@ Some examples:
 
 ```
 # Simple argument (indexed and named)
-Hello, Your friend {0} is now online.
-Hello, Your friend {friend} is now online.
+{0} sent you a message.
+{name} sent you a message.
 
 # Argument formatting
-Order was sent on {0,date}.
+Message was sent on {0,date}.
 
 # Select statement
-{gender, select, female {She} male {He} other {They}} received you email.
+{gender, select, female {She} male {He} other {They}} sent you a message.
 
 # Pluralization
-I bought {0, plural, one {# book} other {# books}}
+You have {0, plural, zero {no new messages}, one {one new message} other {# new messages}}
 ```
 
 For more examples go to [advanced message formatting examples](./README-FORMAT.md)
@@ -60,6 +62,8 @@ For more examples go to [advanced message formatting examples](./README-FORMAT.m
 ## Type based formatters
 
 ## Missing message detection
+
+## Whitespace normalization
 
 ## Files structure
 
@@ -74,3 +78,5 @@ For more examples go to [advanced message formatting examples](./README-FORMAT.m
 - Update readme
 - Release
 - Trim new lines?
+- add option to disable references
+- entries -> bundles

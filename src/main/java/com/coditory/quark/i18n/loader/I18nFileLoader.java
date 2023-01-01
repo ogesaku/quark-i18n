@@ -32,7 +32,7 @@ public class I18nFileLoader implements WatchableI18nLoader {
     private final I18nPath staticPrefix;
     private final FileSystem fileSystem;
     private final Map<String, CachedResource> cachedResources = new LinkedHashMap<>();
-    private final Map<String, I18nTemplates> cachedEntries = new LinkedHashMap<>();
+    private final Map<String, I18nTemplatesBundle> cachedEntries = new LinkedHashMap<>();
     private Thread watchThread;
 
     I18nFileLoader(
@@ -53,31 +53,31 @@ public class I18nFileLoader implements WatchableI18nLoader {
 
     @NotNull
     @Override
-    public synchronized List<I18nTemplates> load() {
-        List<I18nTemplates> result = new ArrayList<>();
+    public synchronized List<I18nTemplatesBundle> load() {
+        List<I18nTemplatesBundle> result = new ArrayList<>();
         for (I18nPathPattern pathPattern : pathPatterns) {
             List<Resource> resources = scanFiles(pathPattern);
             for (Resource resource : resources) {
-                I18nTemplates templates = load(pathPattern, resource);
+                I18nTemplatesBundle templates = load(pathPattern, resource);
                 result.add(templates);
             }
         }
         return unmodifiableList(result);
     }
 
-    private I18nTemplates load(I18nPathPattern pathPattern, Resource resource) {
+    private I18nTemplatesBundle load(I18nPathPattern pathPattern, Resource resource) {
         I18nPathGroups matchedGroups = pathPattern.matchGroups(resource.name());
         return load(resource, matchedGroups);
     }
 
-    private I18nTemplates load(Resource resource, I18nPathGroups matchedGroups) {
+    private I18nTemplatesBundle load(Resource resource, I18nPathGroups matchedGroups) {
         Locale locale = matchedGroups.locale();
         I18nPath prefix = matchedGroups.path() != null
                 ? staticPrefix.child(matchedGroups.path())
                 : I18nPath.root();
-        Map<I18nKey, String> parsed = parseFile(locale, prefix, resource);
+        Map<I18nKey, String> parsed = parseFile(locale, resource);
         String urlString = resource.url().toString();
-        I18nTemplates result = new I18nTemplates(parsed, prefix);
+        I18nTemplatesBundle result = new I18nTemplatesBundle(parsed, prefix);
         cachedEntries.put(urlString, result);
         cachedResources.put(urlString, new CachedResource(resource, matchedGroups));
         return result;
@@ -89,7 +89,7 @@ public class I18nFileLoader implements WatchableI18nLoader {
                 : ResourceScanner.scanFiles(fileSystem, pathPattern);
     }
 
-    private Map<I18nKey, String> parseFile(Locale locale, I18nPath prefix, Resource resource) {
+    private Map<I18nKey, String> parseFile(Locale locale, Resource resource) {
         String extension = getExtension(resource.name());
         I18nParser parser = parsersByExtension.getOrDefault(extension, this.parser);
         if (parser == null) {
@@ -97,7 +97,7 @@ public class I18nFileLoader implements WatchableI18nLoader {
         }
         String content = readFile(resource);
         try {
-            return parser.parse(content, prefix, locale);
+            return parser.parse(content, locale);
         } catch (Throwable e) {
             throw new I18nLoadException("Could not parse file: " + resource.name(), e);
         }
@@ -171,7 +171,7 @@ public class I18nFileLoader implements WatchableI18nLoader {
             }
             case CREATE -> loadToCache(resource);
         }
-        List<I18nTemplates> entries = cachedEntries.values()
+        List<I18nTemplatesBundle> entries = cachedEntries.values()
                 .stream()
                 .toList();
         for (I18nLoaderChangeListener listener : listeners) {

@@ -1,6 +1,6 @@
 package com.coditory.quark.i18n;
 
-import com.coditory.quark.i18n.loader.I18nTemplates;
+import com.coditory.quark.i18n.loader.I18nTemplatesBundle;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,7 +13,7 @@ import static com.coditory.quark.i18n.Preconditions.expectNonNull;
 import static java.util.stream.Collectors.toSet;
 
 final class LocaleResolver {
-    static LocaleResolver of(Locale defaultLocale, List<I18nTemplates> templates) {
+    static LocaleResolver of(Locale defaultLocale, List<I18nTemplatesBundle> templates) {
         Set<Locale> availableLocales = templates.stream()
                 .flatMap(t -> t.templates().keySet().stream())
                 .map(I18nKey::locale)

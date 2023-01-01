@@ -12,13 +12,9 @@ import java.util.Map;
 final class YamlI18nParser implements I18nParser {
     @Override
     @NotNull
-    public Map<I18nKey, String> parse(
-            @NotNull String content,
-            @Nullable I18nPath prefix,
-            @Nullable Locale locale
-    ) {
+    public Map<I18nKey, String> parse(@NotNull String content, @Nullable Locale locale) {
         Map<String, Object> entries = parseYaml(content);
-        return I18nParsers.parseEntries(entries, prefix, locale);
+        return I18nParsers.parseEntries(entries, locale);
     }
 
     private Map<String, Object> parseYaml(@NotNull String content) {

@@ -15,6 +15,6 @@ public interface WatchableI18nLoader extends I18nLoader {
     void stopWatching();
 
     interface I18nLoaderChangeListener {
-        void onChange(List<I18nTemplates> entries);
+        void onChange(List<I18nTemplatesBundle> entries);
     }
 }

@@ -18,13 +18,9 @@ final class JsonI18nParser implements I18nParser {
 
     @Override
     @NotNull
-    public Map<I18nKey, String> parse(
-            @NotNull String content,
-            @Nullable I18nPath prefix,
-            @Nullable Locale locale
-    ) {
+    public Map<I18nKey, String> parse(@NotNull String content, @Nullable Locale locale) {
         Map<String, Object> entries = parseJson(content);
-        return I18nParsers.parseEntries(entries, prefix, locale);
+        return I18nParsers.parseEntries(entries, locale);
     }
 
     @SuppressWarnings("unchecked")

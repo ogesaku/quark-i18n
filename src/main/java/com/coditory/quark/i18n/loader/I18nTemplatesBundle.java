@@ -9,12 +9,12 @@ import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
-public record I18nTemplates(Map<I18nKey, String> templates, I18nPath prefix) {
-    public I18nTemplates(@NotNull Map<I18nKey, String> templates) {
+public record I18nTemplatesBundle(Map<I18nKey, String> templates, I18nPath prefix) {
+    public I18nTemplatesBundle(@NotNull Map<I18nKey, String> templates) {
         this(templates, I18nPath.root());
     }
 
-    public I18nTemplates(@NotNull Map<I18nKey, String> templates, @Nullable I18nPath prefix) {
+    public I18nTemplatesBundle(@NotNull Map<I18nKey, String> templates, @Nullable I18nPath prefix) {
         this.templates = Map.copyOf(templates);
         this.prefix = requireNonNull(prefix);
     }
