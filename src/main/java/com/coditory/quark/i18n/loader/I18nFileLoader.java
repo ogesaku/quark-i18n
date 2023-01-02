@@ -23,7 +23,7 @@ import java.util.Set;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
-public class I18nFileLoader implements WatchableI18nLoader {
+public final class I18nFileLoader implements WatchableI18nLoader {
     private final List<I18nLoaderChangeListener> listeners = new ArrayList<>();
     private final Set<I18nPathPattern> pathPatterns;
     private final ClassLoader classLoader;
@@ -32,7 +32,7 @@ public class I18nFileLoader implements WatchableI18nLoader {
     private final I18nPath staticPrefix;
     private final FileSystem fileSystem;
     private final Map<String, CachedResource> cachedResources = new LinkedHashMap<>();
-    private final Map<String, I18nTemplatesBundle> cachedEntries = new LinkedHashMap<>();
+    private final Map<String, I18nMessageBundle> cachedBundles = new LinkedHashMap<>();
     private Thread watchThread;
 
     I18nFileLoader(
@@ -53,32 +53,32 @@ public class I18nFileLoader implements WatchableI18nLoader {
 
     @NotNull
     @Override
-    public synchronized List<I18nTemplatesBundle> load() {
-        List<I18nTemplatesBundle> result = new ArrayList<>();
+    public synchronized List<I18nMessageBundle> load() {
+        List<I18nMessageBundle> result = new ArrayList<>();
         for (I18nPathPattern pathPattern : pathPatterns) {
             List<Resource> resources = scanFiles(pathPattern);
             for (Resource resource : resources) {
-                I18nTemplatesBundle templates = load(pathPattern, resource);
+                I18nMessageBundle templates = load(pathPattern, resource);
                 result.add(templates);
             }
         }
         return unmodifiableList(result);
     }
 
-    private I18nTemplatesBundle load(I18nPathPattern pathPattern, Resource resource) {
+    private I18nMessageBundle load(I18nPathPattern pathPattern, Resource resource) {
         I18nPathGroups matchedGroups = pathPattern.matchGroups(resource.name());
         return load(resource, matchedGroups);
     }
 
-    private I18nTemplatesBundle load(Resource resource, I18nPathGroups matchedGroups) {
+    private I18nMessageBundle load(Resource resource, I18nPathGroups matchedGroups) {
         Locale locale = matchedGroups.locale();
         I18nPath prefix = matchedGroups.path() != null
                 ? staticPrefix.child(matchedGroups.path())
                 : I18nPath.root();
         Map<I18nKey, String> parsed = parseFile(locale, resource);
         String urlString = resource.url().toString();
-        I18nTemplatesBundle result = new I18nTemplatesBundle(parsed, prefix);
-        cachedEntries.put(urlString, result);
+        I18nMessageBundle result = new I18nMessageBundle(parsed, prefix);
+        cachedBundles.put(urlString, result);
         cachedResources.put(urlString, new CachedResource(resource, matchedGroups));
         return result;
     }
@@ -128,9 +128,9 @@ public class I18nFileLoader implements WatchableI18nLoader {
     @Override
     public synchronized void startWatching() {
         if (watchThread != null) {
-            throw new IllegalStateException("Loader is already watching for changes");
+            throw new I18nLoadException("Loader is already watching for changes");
         }
-        if (cachedEntries.isEmpty()) {
+        if (cachedBundles.isEmpty()) {
             load();
         }
         watchThread = FileWatcher.builder()
@@ -164,18 +164,18 @@ public class I18nFileLoader implements WatchableI18nLoader {
         String urlString = url.toString();
         Resource resource = new Resource(path.toString(), url);
         switch (event.changeType()) {
-            case DELETE -> cachedEntries.remove(urlString);
+            case DELETE -> cachedBundles.remove(urlString);
             case MODIFY -> {
-                cachedEntries.remove(urlString);
+                cachedBundles.remove(urlString);
                 loadToCache(resource);
             }
             case CREATE -> loadToCache(resource);
         }
-        List<I18nTemplatesBundle> entries = cachedEntries.values()
+        List<I18nMessageBundle> bundles = cachedBundles.values()
                 .stream()
                 .toList();
         for (I18nLoaderChangeListener listener : listeners) {
-            listener.onChange(entries);
+            listener.onChange(bundles);
         }
     }
 

@@ -17,7 +17,7 @@ import static com.coditory.quark.i18n.parser.I18nParsers.I18N_PARSERS_BY_EXT;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toCollection;
 
-public class I18nFileLoaderBuilder {
+public final class I18nFileLoaderBuilder {
     private final List<I18nPathPattern> pathPatterns = new ArrayList<>();
     private final Map<String, I18nParser> fileParsersByExtension = new HashMap<>(I18N_PARSERS_BY_EXT);
     private ClassLoader classLoader = Thread.currentThread().getContextClassLoader();

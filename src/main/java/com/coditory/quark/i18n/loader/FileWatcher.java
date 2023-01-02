@@ -30,7 +30,7 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.util.Objects.requireNonNull;
 
-public class FileWatcher implements Runnable {
+public final class FileWatcher implements Runnable {
     private static final int MAX_DIRS_TO_WATCH = 1_000;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<Path, WatchKey> watchedDirKeys = new HashMap<>();

@@ -11,6 +11,8 @@ import org.yaml.snakeyaml.Yaml;
 import java.util.Locale;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 final class JsonI18nParser implements I18nParser {
     private final Gson gson = new GsonBuilder()
             .setPrettyPrinting()
@@ -19,6 +21,7 @@ final class JsonI18nParser implements I18nParser {
     @Override
     @NotNull
     public Map<I18nKey, String> parse(@NotNull String content, @Nullable Locale locale) {
+        requireNonNull(content);
         Map<String, Object> entries = parseJson(content);
         return I18nParsers.parseEntries(entries, locale);
     }

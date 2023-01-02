@@ -12,8 +12,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 final class EntriesI18nParser {
     public Map<I18nKey, String> parseEntries(@NotNull Map<String, Object> values, @Nullable Locale locale) {
+        requireNonNull(values);
         return parseEntries(values, I18nPath.root(), locale);
     }
 
