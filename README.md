@@ -37,8 +37,8 @@ I18nMessagePack messagePack=I18nMessagePack.builder()
         .build();
 
 // ...when request arrives
-        I18nMessages messages=messagePack.localize(req.getLocale());
-        print(messages.getMessage("greeting",userName));
+I18nMessages messages = messagePack.localize(req.getLocale());
+print(messages.getMessage("greeting", userName));
 ```
 
 ## Message formatting
@@ -78,12 +78,12 @@ Messages can be created in 3 ways:
 
 ```java
 I18nMessagePack messages=I18nMessagePack.builder()
-        .addMessage(Loacles.EN_US,"hello","Hello {0}")
-        .addMessage(Loacles.PL_PL,"hello","Cześć {0}")
+        .addMessage(Loacles.EN_US, "hello", "Hello {0}")
+        .addMessage(Loacles.PL_PL, "hello", "Cześć {0}")
         .setDefaultLocale(PL_PL)
         .build();
 
-        messages.getMessage(Loacles.EN_US,"hello",userName);
+messages.getMessage(Loacles.EN_US, "hello", userName);
 ```
 
 If you want to quickly load messages from a nested map (for example fetched from a document storage)
@@ -91,7 +91,7 @@ you can use `I18nParsers.parseEntries(map, locale)` to translate nested the map 
 
 ```java
 I18nMessagePack messages=I18nMessagePack.builder()
-        .addMessages(I18nParsers.parseEntries(Map.of("hello","Hello {0}"),EN_US))
+        .addMessages(I18nParsers.parseEntries(Map.of("hello", "Hello {0}"), EN_US))
         .build();
 ```
 
@@ -131,7 +131,7 @@ There is [dev mode](#devmode) that auto-reloads files during development.
 
 To reload messages in file change use:
 
-```
+```java
 I18nMessagePack.builder()
     .scanFileSystem("i18n/*")
     .buildAndWatchForChanges();
@@ -152,7 +152,7 @@ I18nMessagePack messages=I18nMessagePack.builder()
         .addFallbackKeyPrefix("glossary")
         .build();
 
-        String message=messages.getMessage(Locales.en_US,"hello");
+String message=messages.getMessage(Locales.en_US, "hello");
 ```
 
 Locations used to find the message:
@@ -173,7 +173,7 @@ I18nMessagePack messages=I18nMessagePack.builder()
         .addMessageFallbackKeyPrefix("common")
         .build();
 
-        String message=messages.getMessage(Locales.en_US,"hello");
+String message = messages.getMessage(Locales.en_US, "hello");
 ```
 
 Locations used to find the message:
@@ -194,9 +194,10 @@ I18nMessagePack messages=I18nMessagePack.builder()
         .scanClassPath("/i18n/messages-{locale}.yml")
         .setDefaultLocale(PL_PL)
         .build();
-        I18nMessagePack homepageMessages=messages.prefixQueries("pages.homepage");
-        String homepageTitle=homepageMessages.getMessage(en_US,"title");
-        String homepageSubtitle=homepageMessages.getMessage(en_US,"title");
+
+I18nMessagePack homepageMessages = messages.prefixQueries("pages.homepage");
+String homepageTitle = homepageMessages.getMessage(en_US, "title");
+String homepageSubtitle = homepageMessages.getMessage(en_US, "title");
 ```
 
 Locations used to find the message:
@@ -219,9 +220,9 @@ I18nMessagePack messagePack=I18nMessagePack.builder()
         .build();
 
 // ...when request arrives
-        I18nMessages messages=messagePack.localize(req.getLocale());
-        String title=messages.getMessage("title");
-        String subtitle=messages.getMessage("subtitle");
+I18nMessages messages = messagePack.localize(req.getLocale());
+String title = messages.getMessage("title");
+String subtitle = messages.getMessage("subtitle");
 ```
 
 Query localization mechanism can be used together with query prefixes:
@@ -246,7 +247,7 @@ about-company: "${company.name} was established on ${company.established}"
 ```
 
 ```java
-messages.getMessage("about-company")=="ACME was established on 1988"
+messages.getMessage("about-company") == "ACME was established on 1988"
 ```
 
 - It's not a part of ICU standard
@@ -264,7 +265,7 @@ Let's configure messages:
 
 ```java
 I18nMessagePack messagePack=I18nMessagePack.builder()
-        .addMessage(EN_US,"msg","${company.name} was established on 1988")
+        .addMessage(EN_US, "msg", "${company.name} was established on 1988")
         .scanClassPath("/i18n/messages-{locale}.yml")
         .setDefaultLocale(PL_PL)
         .addFallbackKeyPrefix("fallback")
@@ -331,7 +332,7 @@ messages.getMessage("msg", new Foo(123.456)) == "00123.45600"
 
 When message is missing, exception is thrown. This mechanism can be changed with:
 
-```
+```java
 // add custom missing message handler
 i18nMessagePackBuilder.setMissingMessageHandler(customHandler);
 
@@ -421,7 +422,7 @@ This mechanism is disabled by default and can be enabled with: `i18nMessagePackB
 
 You can use file watching capabilities to speed up the development cycle:
 
-```
+```java
 I18nMessagePackBuidler messagesBuilder = I18nMessagePack.builder()
     .setDefaultLocale(EN_US);
     // ... other common settings
