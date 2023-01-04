@@ -5,8 +5,8 @@ import com.coditory.quark.i18n.parser.I18nParser;
 
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -29,6 +29,12 @@ public final class I18nFileLoaderBuilder {
         requireNonNull(filePattern);
         I18nPathPattern template = I18nPathPattern.of(filePattern);
         this.pathPatterns.add(template);
+        return this;
+    }
+
+    public I18nFileLoaderBuilder scanPathPatterns(String... others) {
+        requireNonNull(others);
+        Arrays.stream(others).forEach(this::scanPathPattern);
         return this;
     }
 

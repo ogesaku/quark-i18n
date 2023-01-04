@@ -67,8 +67,6 @@ public final class FileWatcher implements Runnable {
             throw new I18nLoadException("Could not create watch service for fileSystem", e);
         }
         baseDirectories
-                .stream()
-                .flatMap(path -> getPathWithParents(path).stream())
                 .forEach(path -> watchDir(watchService, path));
         return watchService;
     }
@@ -83,7 +81,7 @@ public final class FileWatcher implements Runnable {
                     for (WatchEvent<?> event : key.pollEvents()) {
                         if (event.context() instanceof Path eventPath) {
                             Path path = keyPath.resolve(eventPath);
-                            System.out.println(">>> " + event.kind() + ": " + path);
+                            logger.debug("Watch event: " + event.kind() + ": " + path);
                             onChange(path, (WatchEvent.Kind<Path>) event.kind(), watchService);
                         }
                     }
@@ -95,15 +93,6 @@ public final class FileWatcher implements Runnable {
         } finally {
             stopWatching(watchService);
         }
-    }
-
-    private List<Path> getPathWithParents(Path path) {
-        List<Path> paths = new ArrayList<>();
-        while (path != null) {
-            paths.add(path);
-            path = path.getParent();
-        }
-        return paths;
     }
 
     private boolean isWatchable(Path dir) {
@@ -208,6 +197,9 @@ public final class FileWatcher implements Runnable {
         }
         if (watchedDirKeys.size() > 10_000) {
             throw new I18nLoadException("Sanity check for too many directories too watch: " + MAX_DIRS_TO_WATCH);
+        }
+        if (!Files.isDirectory(path) && !Files.isRegularFile(path)) {
+            throw new I18nLoadException("Expected file or directory to exist: " + path);
         }
         try {
             WatchKey watchKey = path.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);

@@ -96,6 +96,9 @@ public final class I18nFileLoader implements WatchableI18nLoader {
             throw new I18nLoadException("No file parser defined for: " + resource.name());
         }
         String content = readFile(resource);
+        if (content.isBlank()) {
+            return Map.of();
+        }
         try {
             return parser.parse(content, locale);
         } catch (Throwable e) {

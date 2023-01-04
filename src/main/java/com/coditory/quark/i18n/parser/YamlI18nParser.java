@@ -21,8 +21,9 @@ final class YamlI18nParser implements I18nParser {
 
     private Map<String, Object> parseYaml(@NotNull String content) {
         try {
-            Yaml yaml = new Yaml();
-            return yaml.load(content);
+            Yaml yaml = new Yaml(); // Yaml is not thread safe!
+            Map<String, Object> entries = yaml.load(content);
+            return entries == null || entries.isEmpty() ? Map.of() : entries;
         } catch (Throwable e) {
             throw new I18nParseException("Could not parse YAML", e);
         }

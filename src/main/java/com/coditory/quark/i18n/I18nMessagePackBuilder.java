@@ -1,11 +1,12 @@
 package com.coditory.quark.i18n;
 
-import com.coditory.quark.i18n.loader.I18nFileLoaderFactory;
+import com.coditory.quark.i18n.loader.I18nFileLoaderBuilder;
 import com.coditory.quark.i18n.loader.I18nLoader;
 import com.coditory.quark.i18n.loader.I18nMessageBundle;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -53,16 +54,40 @@ public final class I18nMessagePackBuilder {
     @NotNull
     public I18nMessagePackBuilder scanFileSystem(@NotNull String firstPattern, String... others) {
         expectNonBlank(firstPattern, "firstPattern");
-        I18nLoader loader = I18nFileLoaderFactory.scanFileSystem(firstPattern, others);
-        this.loader.addLoader(loader);
-        return this;
+        return scanFileSystem(FileSystems.getDefault(), firstPattern, others);
     }
 
     @NotNull
     public I18nMessagePackBuilder scanFileSystem(@NotNull FileSystem fileSystem, @NotNull String firstPattern, String... others) {
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(fileSystem, "fileSystem");
-        I18nLoader loader = I18nFileLoaderFactory.scanFileSystem(fileSystem, firstPattern, others);
+        I18nLoader loader = new I18nFileLoaderBuilder()
+                .scanFileSystem(fileSystem)
+                .scanPathPattern(firstPattern)
+                .scanPathPatterns(others)
+                .build();
+        this.loader.addLoader(loader);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder scanFileSystemWithPrefix(@NotNull String prefix, @NotNull String firstPattern, String... others) {
+        expectNonBlank(prefix, "prefix");
+        expectNonBlank(firstPattern, "firstPattern");
+        return scanFileSystemWithPrefix(prefix, FileSystems.getDefault(), firstPattern, others);
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder scanFileSystemWithPrefix(@NotNull String prefix, @NotNull FileSystem fileSystem, @NotNull String firstPattern, String... others) {
+        expectNonBlank(prefix, "prefix");
+        expectNonBlank(firstPattern, "firstPattern");
+        expectNonNull(fileSystem, "fileSystem");
+        I18nLoader loader = new I18nFileLoaderBuilder()
+                .scanFileSystem(fileSystem)
+                .scanPathPattern(firstPattern)
+                .scanPathPatterns(others)
+                .staticKeyPrefix(prefix)
+                .build();
         this.loader.addLoader(loader);
         return this;
     }
@@ -77,7 +102,31 @@ public final class I18nMessagePackBuilder {
     public I18nMessagePackBuilder scanClassPath(@NotNull ClassLoader classLoader, @NotNull String firstPattern, String... others) {
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(classLoader, "classLoader");
-        I18nLoader loader = I18nFileLoaderFactory.scanClassPath(classLoader, firstPattern, others);
+        I18nLoader loader = new I18nFileLoaderBuilder()
+                .classLoader(classLoader)
+                .scanPathPattern(firstPattern)
+                .scanPathPatterns(others)
+                .build();
+        this.loader.addLoader(loader);
+        return this;
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder scanClassPathWithPrefix(@NotNull String prefix, @NotNull String firstPattern, String... others) {
+        expectNonBlank(prefix, "prefix");
+        expectNonBlank(firstPattern, "firstPattern");
+        return scanClassPathWithPrefix(prefix, Thread.currentThread().getContextClassLoader(), firstPattern, others);
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder scanClassPathWithPrefix(@NotNull String prefix, @NotNull ClassLoader classLoader, @NotNull String firstPattern, String... others) {
+        expectNonBlank(firstPattern, "firstPattern");
+        expectNonNull(classLoader, "classLoader");
+        I18nLoader loader = new I18nFileLoaderBuilder()
+                .classLoader(classLoader)
+                .scanPathPattern(firstPattern)
+                .scanPathPatterns(others)
+                .build();
         this.loader.addLoader(loader);
         return this;
     }

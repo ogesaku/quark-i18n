@@ -66,7 +66,7 @@ final class I18nPathPattern {
                 ? bracketIndex
                 : starIndex;
         if (dirEnd < 0) {
-            return pathPattern;
+            dirEnd = pathPattern.length() - 1;
         }
         while (dirEnd > 0 && pathPattern.charAt(dirEnd) != '/') dirEnd--;
         return pathPattern.substring(0, dirEnd);

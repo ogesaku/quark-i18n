@@ -32,9 +32,9 @@ dependencies {
 
 ```java
 I18nMessagePack messagePack=I18nMessagePack.builder()
-        .scanClassPath("/i18n/messages-{locale}.yml")
-        .setDefaultLocale(Locales.EN_US)
-        .build();
+    .scanClassPath("/i18n/messages-{locale}.yml")
+    .setDefaultLocale(Locales.EN_US)
+    .build();
 
 // ...when request arrives
 I18nMessages messages = messagePack.localize(req.getLocale());
@@ -78,10 +78,10 @@ Messages can be created in 3 ways:
 
 ```java
 I18nMessagePack messages=I18nMessagePack.builder()
-        .addMessage(Loacles.EN_US, "hello", "Hello {0}")
-        .addMessage(Loacles.PL_PL, "hello", "Cześć {0}")
-        .setDefaultLocale(PL_PL)
-        .build();
+    .addMessage(Loacles.EN_US, "hello", "Hello {0}")
+    .addMessage(Loacles.PL_PL, "hello", "Cześć {0}")
+    .setDefaultLocale(PL_PL)
+    .build();
 
 messages.getMessage(Loacles.EN_US, "hello", userName);
 ```
@@ -91,18 +91,18 @@ you can use `I18nParsers.parseEntries(map, locale)` to translate nested the map 
 
 ```java
 I18nMessagePack messages=I18nMessagePack.builder()
-        .addMessages(I18nParsers.parseEntries(Map.of("hello", "Hello {0}"), EN_US))
-        .build();
+    .addMessages(I18nParsers.parseEntries(Map.of("hello", "Hello {0}"), EN_US))
+    .build();
 ```
 
 ### Loading messages from classpath or file system
 
 ```java
 I18nMessagePack messages=I18nMessagePack.builder()
-        .scanClassPath("/i18n/messages-{locale}.yml")
-        .scanFileSystem("./overriddes/messages-{locale}.yml")
-        .setDefaultLocale(PL_PL)
-        .build();
+    .scanClassPath("/i18n/messages-{locale}.yml")
+    .scanFileSystem("./overriddes/messages-{locale}.yml")
+    .setDefaultLocale(PL_PL)
+    .build();
 ```
 
 Localization based path placeholders are used to assign all messages in the file to file's locale.
@@ -147,10 +147,10 @@ If there is still no match then the default locale (followed by a less strict de
 
 ```java
 I18nMessagePack messages=I18nMessagePack.builder()
-        .scanClassPath("/i18n/messages-{locale}.yml")
-        .setDefaultLocale(PL_PL)
-        .addFallbackKeyPrefix("glossary")
-        .build();
+    .scanClassPath("/i18n/messages-{locale}.yml")
+    .setDefaultLocale(PL_PL)
+    .addFallbackKeyPrefix("glossary")
+    .build();
 
 String message=messages.getMessage(Locales.en_US, "hello");
 ```
@@ -168,10 +168,10 @@ Sometimes it is useful to specify a common path prefix for all unmatched queries
 
 ```java
 I18nMessagePack messages=I18nMessagePack.builder()
-        .scanClassPath("/i18n/messages-{locale}.yml")
-        .setDefaultLocale(PL_PL)
-        .addMessageFallbackKeyPrefix("common")
-        .build();
+    .scanClassPath("/i18n/messages-{locale}.yml")
+    .setDefaultLocale(PL_PL)
+    .addMessageFallbackKeyPrefix("common")
+    .build();
 
 String message = messages.getMessage(Locales.en_US, "hello");
 ```
@@ -191,9 +191,9 @@ Sometimes it's useful to prefix all queries with some path, like in the example:
 
 ```java
 I18nMessagePack messages=I18nMessagePack.builder()
-        .scanClassPath("/i18n/messages-{locale}.yml")
-        .setDefaultLocale(PL_PL)
-        .build();
+    .scanClassPath("/i18n/messages-{locale}.yml")
+    .setDefaultLocale(PL_PL)
+    .build();
 
 I18nMessagePack homepageMessages = messages.prefixQueries("pages.homepage");
 String homepageTitle = homepageMessages.getMessage(en_US, "title");
@@ -215,9 +215,9 @@ Sometimes it's useful to apply common locale to all queries:
 
 ```java
 I18nMessagePack messagePack=I18nMessagePack.builder()
-        .scanClassPath("/i18n/messages-{locale}.yml")
-        .setDefaultLocale(PL_PL)
-        .build();
+    .scanClassPath("/i18n/messages-{locale}.yml")
+    .setDefaultLocale(PL_PL)
+    .build();
 
 // ...when request arrives
 I18nMessages messages = messagePack.localize(req.getLocale());
@@ -229,8 +229,8 @@ Query localization mechanism can be used together with query prefixes:
 
 ```java
 I18nMessages messages=messagePack
-        .prefixQueries("pages.homepage")
-        .localize(req.getLocale())
+    .prefixQueries("pages.homepage")
+    .localize(req.getLocale())
 ```
 
 ## Message references
@@ -265,11 +265,11 @@ Let's configure messages:
 
 ```java
 I18nMessagePack messagePack=I18nMessagePack.builder()
-        .addMessage(EN_US, "msg", "${company.name} was established on 1988")
-        .scanClassPath("/i18n/messages-{locale}.yml")
-        .setDefaultLocale(PL_PL)
-        .addFallbackKeyPrefix("fallback")
-        .build();
+    .addMessage(EN_US, "msg", "${company.name} was established on 1988")
+    .scanClassPath("/i18n/messages-{locale}.yml")
+    .setDefaultLocale(PL_PL)
+    .addFallbackKeyPrefix("fallback")
+    .build();
 ```
 
 Locations used to find the message:
@@ -287,10 +287,10 @@ If the reference is defined in a message stored in a prefixed file it will be au
 
 ```java
 I18nMessagePack messagePack=I18nMessagePack.builder()
-        .scanClassPathLocation("i18n/{prefix}/message_{locale}.yml")
-        .setDefaultLocale(PL_PL)
-        .addFallbackKeyPrefix("fallback")
-        .build();
+    .scanClassPathLocation("i18n/{prefix}/message_{locale}.yml")
+    .setDefaultLocale(PL_PL)
+    .addFallbackKeyPrefix("fallback")
+    .build();
 ```
 
 and file `i18n/company/message_en-US.yml` contains
@@ -321,9 +321,9 @@ Example:
 
 ```java
 I18nMessages messages = I18nMessagePack.builder()
-        .addMessage(EN, "msg", "{0,number,00000.00000}")
-        .addArgumentTransformer(Foo, (foo) -> foo.getSomeNumber())
-        .buildLocalized(EN);
+    .addMessage(EN, "msg", "{0,number,00000.00000}")
+    .addArgumentTransformer(Foo, (foo) -> foo.getSomeNumber())
+    .buildLocalized(EN);
         
 messages.getMessage("msg", new Foo(123.456)) == "00123.45600"
 ```
@@ -385,17 +385,17 @@ You can skip them using a custom missing message detector:
 
 ```java
 I18nMissingMessagesDetector detector = I18nMissingMessagesDetector.builder()
-        .skipPath(skipPath)
-        .logMissingMessages()
-        .build()
+    .skipPath(skipPath)
+    .logMissingMessages()
+    .build()
 
 I18nMessagePack.builder()
-        .addMessage(EN_US, "a.b.c.d", "MISSING")
-        .addMessage(EN_US, "x", "X")
-        .addMessage(EN_GB, "x", "X")
-        .addMessage(PL_PL, "x", "X")
-        .detectMissingMessages(detector)
-        .build()
+    .addMessage(EN_US, "a.b.c.d", "MISSING")
+    .addMessage(EN_US, "x", "X")
+    .addMessage(EN_GB, "x", "X")
+    .addMessage(PL_PL, "x", "X")
+    .detectMissingMessages(detector)
+    .build()
 
 // to skip a.b.c.d use one of sample path patterns as a skipPath:
 // - "a.b.c.d",
