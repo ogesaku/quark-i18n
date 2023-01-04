@@ -38,11 +38,6 @@ public final class I18nFileLoaderBuilder {
         return this;
     }
 
-    public I18nFileLoaderBuilder classLoader(ClassLoader classLoader) {
-        this.classLoader = requireNonNull(classLoader);
-        return this;
-    }
-
     public I18nFileLoaderBuilder scanFileSystem() {
         return scanFileSystem(FileSystems.getDefault());
     }
@@ -50,6 +45,16 @@ public final class I18nFileLoaderBuilder {
     public I18nFileLoaderBuilder scanFileSystem(FileSystem fileSystem) {
         this.fileSystem = requireNonNull(fileSystem);
         this.classLoader = null;
+        return this;
+    }
+
+    public I18nFileLoaderBuilder scanClassPath() {
+        return scanClassPath(Thread.currentThread().getContextClassLoader());
+    }
+
+    public I18nFileLoaderBuilder scanClassPath(ClassLoader classLoader) {
+        this.classLoader = requireNonNull(classLoader);
+        this.fileSystem = null;
         return this;
     }
 
@@ -79,6 +84,9 @@ public final class I18nFileLoaderBuilder {
     }
 
     public I18nLoader build() {
+        if (classLoader == null && fileSystem == null) {
+            throw new IllegalStateException("Specify classLoader or fileSystem to load files from");
+        }
         return new I18nFileLoader(
                 useAbsolutePathPatterns(),
                 fileSystem,

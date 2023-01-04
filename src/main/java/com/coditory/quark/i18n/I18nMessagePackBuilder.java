@@ -61,13 +61,7 @@ public final class I18nMessagePackBuilder {
     public I18nMessagePackBuilder scanFileSystem(@NotNull FileSystem fileSystem, @NotNull String firstPattern, String... others) {
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(fileSystem, "fileSystem");
-        I18nLoader loader = new I18nFileLoaderBuilder()
-                .scanFileSystem(fileSystem)
-                .scanPathPattern(firstPattern)
-                .scanPathPatterns(others)
-                .build();
-        this.loader.addLoader(loader);
-        return this;
+        return scanFileSystemWithPrefix(I18nPath.root().getValue(), fileSystem, firstPattern, others);
     }
 
     @NotNull
@@ -102,13 +96,7 @@ public final class I18nMessagePackBuilder {
     public I18nMessagePackBuilder scanClassPath(@NotNull ClassLoader classLoader, @NotNull String firstPattern, String... others) {
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(classLoader, "classLoader");
-        I18nLoader loader = new I18nFileLoaderBuilder()
-                .classLoader(classLoader)
-                .scanPathPattern(firstPattern)
-                .scanPathPatterns(others)
-                .build();
-        this.loader.addLoader(loader);
-        return this;
+        return scanClassPathWithPrefix(I18nPath.root().getValue(), Thread.currentThread().getContextClassLoader(), firstPattern, others);
     }
 
     @NotNull
@@ -123,7 +111,7 @@ public final class I18nMessagePackBuilder {
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(classLoader, "classLoader");
         I18nLoader loader = new I18nFileLoaderBuilder()
-                .classLoader(classLoader)
+                .scanClassPath(classLoader)
                 .scanPathPattern(firstPattern)
                 .scanPathPatterns(others)
                 .build();

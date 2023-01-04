@@ -151,7 +151,7 @@ public final class FileWatcher implements Runnable {
     }
 
     private void onModify(Path path) {
-        logger.debug("File modified: {}", path);
+        logger.info("File modified: {}", path);
         notifyListeners(FileChangeType.MODIFY, path);
     }
 

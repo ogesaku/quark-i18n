@@ -6,6 +6,8 @@ import com.coditory.quark.i18n.loader.FileWatcher.FileChangedEvent;
 import com.coditory.quark.i18n.loader.I18nPathPattern.I18nPathGroups;
 import com.coditory.quark.i18n.parser.I18nParser;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -24,6 +26,7 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
 public final class I18nFileLoader implements WatchableI18nLoader {
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final List<I18nLoaderChangeListener> listeners = new ArrayList<>();
     private final Set<I18nPathPattern> pathPatterns;
     private final ClassLoader classLoader;
@@ -60,6 +63,7 @@ public final class I18nFileLoader implements WatchableI18nLoader {
             for (Resource resource : resources) {
                 I18nMessageBundle templates = load(pathPattern, resource);
                 result.add(templates);
+                logger.debug("Loaded message bundle: {}", resource.url());
             }
         }
         return unmodifiableList(result);
