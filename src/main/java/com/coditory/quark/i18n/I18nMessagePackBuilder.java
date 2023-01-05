@@ -1,6 +1,7 @@
 package com.coditory.quark.i18n;
 
-import com.coditory.quark.i18n.loader.I18nFileLoader;
+import com.coditory.quark.i18n.loader.I18nClassPathLoader;
+import com.coditory.quark.i18n.loader.I18nFileSystemLoader;
 import com.coditory.quark.i18n.loader.I18nLoader;
 import com.coditory.quark.i18n.loader.I18nMessageBundle;
 import org.jetbrains.annotations.NotNull;
@@ -84,8 +85,8 @@ public final class I18nMessagePackBuilder {
         expectNonNull(prefix, "prefix");
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(fileSystem, "fileSystem");
-        I18nLoader loader = I18nFileLoader
-                .fileSystemLoader(fileSystem)
+        I18nLoader loader = I18nFileSystemLoader
+                .builder(fileSystem)
                 .scanPathPattern(firstPattern)
                 .scanPathPatterns(others)
                 .staticKeyPrefix(prefix)
@@ -127,8 +128,8 @@ public final class I18nMessagePackBuilder {
         expectNonNull(prefix, "prefix");
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(classLoader, "classLoader");
-        I18nLoader loader = I18nFileLoader
-                .classPathLoader(classLoader)
+        I18nLoader loader = I18nClassPathLoader
+                .builder(classLoader)
                 .scanPathPattern(firstPattern)
                 .scanPathPatterns(others)
                 .staticKeyPrefix(prefix)

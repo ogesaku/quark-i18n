@@ -89,7 +89,7 @@ public final class FileWatcher implements Runnable {
                 key.reset();
             }
         } catch (InterruptedException e) {
-            logger.info("Stopping watch service because of interruption");
+            logger.debug("Stopping watch service because of interruption");
         } finally {
             stopWatching(watchService);
         }
@@ -151,7 +151,7 @@ public final class FileWatcher implements Runnable {
     }
 
     private void onModify(Path path) {
-        logger.info("File modified: {}", path);
+        logger.debug("File modified: {}", path);
         notifyListeners(FileChangeType.MODIFY, path);
     }
 
@@ -228,7 +228,7 @@ public final class FileWatcher implements Runnable {
                     }
                 });
             } else {
-                logger.info("Watching dir: " + path);
+                logger.debug("Watching dir: " + path);
             }
         } catch (IOException e) {
             throw new I18nLoadException("Could not register watcher for file path: " + path, e);

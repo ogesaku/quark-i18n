@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -264,6 +265,24 @@ final class I18nPathPattern {
             result++;
         }
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "I18nPathPattern{" + source + '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        I18nPathPattern that = (I18nPathPattern) o;
+        return Objects.equals(source, that.source);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(source);
     }
 
     public record I18nPathGroups(Locale locale, I18nPath path) {

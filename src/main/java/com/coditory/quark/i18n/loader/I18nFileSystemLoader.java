@@ -26,21 +26,12 @@ import java.util.Set;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
-public final class I18nFileLoader implements WatchableI18nLoader {
-    public static I18nFileLoaderBuilder classPathLoader() {
-        return classPathLoader(Thread.currentThread().getContextClassLoader());
+public final class I18nFileSystemLoader implements WatchableI18nLoader {
+    public static I18nFileLoaderBuilder builder() {
+        return builder(FileSystems.getDefault());
     }
 
-    public static I18nFileLoaderBuilder classPathLoader(ClassLoader classLoader) {
-        return new I18nFileLoaderBuilder()
-                .scanClassPath(classLoader);
-    }
-
-    public static I18nFileLoaderBuilder fileSystemLoader() {
-        return fileSystemLoader(FileSystems.getDefault());
-    }
-
-    public static I18nFileLoaderBuilder fileSystemLoader(FileSystem fileSystem) {
+    public static I18nFileLoaderBuilder builder(FileSystem fileSystem) {
         return new I18nFileLoaderBuilder()
                 .scanFileSystem(fileSystem);
     }
@@ -48,7 +39,6 @@ public final class I18nFileLoader implements WatchableI18nLoader {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final List<I18nLoaderChangeListener> listeners = new ArrayList<>();
     private final Set<I18nPathPattern> pathPatterns;
-    private final ClassLoader classLoader;
     private final I18nParser parser;
     private final Map<String, I18nParser> parsersByExtension;
     private final I18nPath staticPrefix;
@@ -57,20 +47,15 @@ public final class I18nFileLoader implements WatchableI18nLoader {
     private final Map<String, I18nMessageBundle> cachedBundles = new LinkedHashMap<>();
     private Thread watchThread;
 
-    I18nFileLoader(
+    I18nFileSystemLoader(
             Set<I18nPathPattern> pathPatterns,
             FileSystem fileSystem,
-            ClassLoader classLoader,
             I18nParser fileParser,
             Map<String, I18nParser> parsersByExtension,
             I18nPath staticPrefix
     ) {
-        if (classLoader == null && fileSystem == null) {
-            throw new IllegalArgumentException("ClassLoader or FileSystem should be defined");
-        }
-        this.classLoader = classLoader;
         this.staticPrefix = requireNonNull(staticPrefix);
-        this.fileSystem = fileSystem;
+        this.fileSystem = requireNonNull(fileSystem);
         this.pathPatterns = Set.copyOf(pathPatterns);
         this.parsersByExtension = Map.copyOf(parsersByExtension);
         this.parser = fileParser;
@@ -110,9 +95,7 @@ public final class I18nFileLoader implements WatchableI18nLoader {
     }
 
     private List<Resource> scanFiles(I18nPathPattern pathPattern) {
-        return classLoader != null
-                ? ResourceScanner.scanClassPath(classLoader, pathPattern)
-                : ResourceScanner.scanFiles(fileSystem, pathPattern);
+        return ResourceScanner.scanFiles(fileSystem, pathPattern);
     }
 
     private Map<I18nKey, String> parseFile(Locale locale, Resource resource) {
@@ -156,9 +139,6 @@ public final class I18nFileLoader implements WatchableI18nLoader {
 
     @Override
     public synchronized void startWatching() {
-        if (fileSystem == null) {
-            return;
-        }
         if (watchThread != null) {
             throw new I18nLoadException("Loader is already watching for changes");
         }
@@ -196,12 +176,23 @@ public final class I18nFileLoader implements WatchableI18nLoader {
         String urlString = url.toString();
         Resource resource = new Resource(path.toString(), url);
         switch (event.changeType()) {
-            case DELETE -> cachedBundles.remove(urlString);
-            case MODIFY -> {
-                cachedBundles.remove(urlString);
-                loadToCache(resource);
+            case DELETE -> {
+                I18nMessageBundle prev = cachedBundles.remove(urlString);
+                if (prev != null) {
+                    logger.info("Removed messages from file: {}", path);
+                }
             }
-            case CREATE -> loadToCache(resource);
+            case MODIFY -> {
+                I18nMessageBundle prev = cachedBundles.remove(urlString);
+                loadToCache(resource);
+                if (prev != null) {
+                    logger.info("Reloaded messages from file: {}", path);
+                }
+            }
+            case CREATE -> {
+                loadToCache(resource);
+                logger.info("Loaded messages from file: {}", path);
+            }
         }
         List<I18nMessageBundle> bundles = cachedBundles.values()
                 .stream()

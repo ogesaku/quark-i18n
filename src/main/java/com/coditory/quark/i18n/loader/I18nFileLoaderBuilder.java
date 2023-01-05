@@ -88,12 +88,29 @@ public final class I18nFileLoaderBuilder {
     }
 
     public I18nLoader build() {
-        if (classLoader == null && fileSystem == null) {
-            throw new IllegalStateException("Specify classLoader or fileSystem to load files from");
+        if (classLoader != null && fileSystem != null) {
+            throw new IllegalStateException("Expected either classPath or fileSystem to be defined");
         }
-        return new I18nFileLoader(
-                useAbsolutePathPatterns(),
-                fileSystem,
+        if (classLoader != null) {
+            return buildClassPathLoader();
+        }
+        if (fileSystem != null) {
+            return buildFileSystemLoader();
+        }
+        throw new IllegalStateException("Expected classPath or fileSystem to be defined");
+    }
+
+    public I18nLoader buildClassPathLoader() {
+        // class path patterns with and without leading '/' should not differ
+        Set<I18nPathPattern> absolute = pathPatterns.stream()
+                .map(pattern -> {
+                    String source = pattern.getSource();
+                    return source.startsWith("/")
+                            ? I18nPathPattern.of(source.substring(1))
+                            : pattern;
+                }).collect(toCollection(LinkedHashSet::new));
+        return new I18nClassPathLoader(
+                absolute,
                 classLoader,
                 fileParser,
                 fileParsersByExtension,
@@ -101,19 +118,16 @@ public final class I18nFileLoaderBuilder {
         );
     }
 
-    private Set<I18nPathPattern> useAbsolutePathPatterns() {
-        if (classLoader == null) {
-            return pathPatterns.stream()
-                    .map(pattern -> pattern.withAbsoluteBaseDirectory(fileSystem))
-                    .collect(toCollection(LinkedHashSet::new));
-        }
-        // class path patterns with and without leading '/' should not differ
-        return pathPatterns.stream()
-                .map(pattern -> {
-                    String source = pattern.getSource();
-                    return source.startsWith("/")
-                            ? I18nPathPattern.of(source.substring(1))
-                            : pattern;
-                }).collect(toCollection(LinkedHashSet::new));
+    public I18nLoader buildFileSystemLoader() {
+        Set<I18nPathPattern> absolute = pathPatterns.stream()
+                .map(pattern -> pattern.withAbsoluteBaseDirectory(fileSystem))
+                .collect(toCollection(LinkedHashSet::new));
+        return new I18nFileSystemLoader(
+                absolute,
+                fileSystem,
+                fileParser,
+                fileParsersByExtension,
+                staticPrefix
+        );
     }
 }
