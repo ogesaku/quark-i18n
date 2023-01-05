@@ -127,6 +127,18 @@ Supported formats:
 
 There is [dev mode](#devmode) that auto-reloads files during development.
 
+### Single message file with multiple locales
+
+When path pattern does not contain one of localization placeholders (`{locale}`, `{lang}`)
+then locale is parsed from the last segment of the message path:
+
+Example in `yml`
+```yml
+homepage.title:
+  pl-PL: Strona główna
+  en-US: Homepage
+```
+
 ### Watching for file changes
 
 To reload messages in file change use:
@@ -237,6 +249,7 @@ I18nMessages messages=messagePack
 
 Message references are the way to reuse text across multiple messages.
 
+Example in yml:
 ```yml
 # Common entries
 company:

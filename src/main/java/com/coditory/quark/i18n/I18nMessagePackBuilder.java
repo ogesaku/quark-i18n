@@ -1,6 +1,6 @@
 package com.coditory.quark.i18n;
 
-import com.coditory.quark.i18n.loader.I18nFileLoaderBuilder;
+import com.coditory.quark.i18n.loader.I18nFileLoader;
 import com.coditory.quark.i18n.loader.I18nLoader;
 import com.coditory.quark.i18n.loader.I18nMessageBundle;
 import org.jetbrains.annotations.NotNull;
@@ -61,7 +61,7 @@ public final class I18nMessagePackBuilder {
     public I18nMessagePackBuilder scanFileSystem(@NotNull FileSystem fileSystem, @NotNull String firstPattern, String... others) {
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(fileSystem, "fileSystem");
-        return scanFileSystemWithPrefix(I18nPath.root().getValue(), fileSystem, firstPattern, others);
+        return scanFileSystemWithPrefix(I18nPath.root(), fileSystem, firstPattern, others);
     }
 
     @NotNull
@@ -76,8 +76,16 @@ public final class I18nMessagePackBuilder {
         expectNonBlank(prefix, "prefix");
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(fileSystem, "fileSystem");
-        I18nLoader loader = new I18nFileLoaderBuilder()
-                .scanFileSystem(fileSystem)
+        return scanFileSystemWithPrefix(I18nPath.of(prefix), fileSystem, firstPattern, others);
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder scanFileSystemWithPrefix(@NotNull I18nPath prefix, @NotNull FileSystem fileSystem, @NotNull String firstPattern, String... others) {
+        expectNonNull(prefix, "prefix");
+        expectNonBlank(firstPattern, "firstPattern");
+        expectNonNull(fileSystem, "fileSystem");
+        I18nLoader loader = I18nFileLoader
+                .fileSystemLoader(fileSystem)
                 .scanPathPattern(firstPattern)
                 .scanPathPatterns(others)
                 .staticKeyPrefix(prefix)
@@ -96,7 +104,7 @@ public final class I18nMessagePackBuilder {
     public I18nMessagePackBuilder scanClassPath(@NotNull ClassLoader classLoader, @NotNull String firstPattern, String... others) {
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(classLoader, "classLoader");
-        return scanClassPathWithPrefix(I18nPath.root().getValue(), Thread.currentThread().getContextClassLoader(), firstPattern, others);
+        return scanClassPathWithPrefix(I18nPath.root(), classLoader, firstPattern, others);
     }
 
     @NotNull
@@ -108,12 +116,22 @@ public final class I18nMessagePackBuilder {
 
     @NotNull
     public I18nMessagePackBuilder scanClassPathWithPrefix(@NotNull String prefix, @NotNull ClassLoader classLoader, @NotNull String firstPattern, String... others) {
+        expectNonBlank(prefix, "prefix");
         expectNonBlank(firstPattern, "firstPattern");
         expectNonNull(classLoader, "classLoader");
-        I18nLoader loader = new I18nFileLoaderBuilder()
-                .scanClassPath(classLoader)
+        return scanClassPathWithPrefix(I18nPath.of(prefix), classLoader, firstPattern, others);
+    }
+
+    @NotNull
+    public I18nMessagePackBuilder scanClassPathWithPrefix(@NotNull I18nPath prefix, @NotNull ClassLoader classLoader, @NotNull String firstPattern, String... others) {
+        expectNonNull(prefix, "prefix");
+        expectNonBlank(firstPattern, "firstPattern");
+        expectNonNull(classLoader, "classLoader");
+        I18nLoader loader = I18nFileLoader
+                .classPathLoader(classLoader)
                 .scanPathPattern(firstPattern)
                 .scanPathPatterns(others)
+                .staticKeyPrefix(prefix)
                 .build();
         this.loader.addLoader(loader);
         return this;
@@ -365,5 +383,7 @@ public final class I18nMessagePackBuilder {
             keys.addAll(bundle.templates().keySet());
         }
         missingMessagesDetector.detect(keys);
+        // don't detect messages multiple times in devmode
+        missingMessagesDetector = null;
     }
 }

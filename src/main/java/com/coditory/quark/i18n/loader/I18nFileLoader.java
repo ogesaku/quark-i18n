@@ -14,6 +14,7 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -26,6 +27,24 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
 public final class I18nFileLoader implements WatchableI18nLoader {
+    public static I18nFileLoaderBuilder classPathLoader() {
+        return classPathLoader(Thread.currentThread().getContextClassLoader());
+    }
+
+    public static I18nFileLoaderBuilder classPathLoader(ClassLoader classLoader) {
+        return new I18nFileLoaderBuilder()
+                .scanClassPath(classLoader);
+    }
+
+    public static I18nFileLoaderBuilder fileSystemLoader() {
+        return fileSystemLoader(FileSystems.getDefault());
+    }
+
+    public static I18nFileLoaderBuilder fileSystemLoader(FileSystem fileSystem) {
+        return new I18nFileLoaderBuilder()
+                .scanFileSystem(fileSystem);
+    }
+
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final List<I18nLoaderChangeListener> listeners = new ArrayList<>();
     private final Set<I18nPathPattern> pathPatterns;
@@ -46,9 +65,12 @@ public final class I18nFileLoader implements WatchableI18nLoader {
             Map<String, I18nParser> parsersByExtension,
             I18nPath staticPrefix
     ) {
+        if (classLoader == null && fileSystem == null) {
+            throw new IllegalArgumentException("ClassLoader or FileSystem should be defined");
+        }
         this.classLoader = classLoader;
         this.staticPrefix = requireNonNull(staticPrefix);
-        this.fileSystem = requireNonNull(fileSystem);
+        this.fileSystem = fileSystem;
         this.pathPatterns = Set.copyOf(pathPatterns);
         this.parsersByExtension = Map.copyOf(parsersByExtension);
         this.parser = fileParser;
@@ -134,6 +156,9 @@ public final class I18nFileLoader implements WatchableI18nLoader {
 
     @Override
     public synchronized void startWatching() {
+        if (fileSystem == null) {
+            return;
+        }
         if (watchThread != null) {
             throw new I18nLoadException("Loader is already watching for changes");
         }

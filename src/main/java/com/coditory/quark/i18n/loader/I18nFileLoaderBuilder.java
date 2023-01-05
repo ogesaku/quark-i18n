@@ -25,6 +25,10 @@ public final class I18nFileLoaderBuilder {
     private I18nPath staticPrefix = I18nPath.root();
     private I18nParser fileParser;
 
+    I18nFileLoaderBuilder() {
+        // package protected constructor
+    }
+
     public I18nFileLoaderBuilder scanPathPattern(String filePattern) {
         requireNonNull(filePattern);
         I18nPathPattern template = I18nPathPattern.of(filePattern);
@@ -38,21 +42,21 @@ public final class I18nFileLoaderBuilder {
         return this;
     }
 
-    public I18nFileLoaderBuilder scanFileSystem() {
+    I18nFileLoaderBuilder scanFileSystem() {
         return scanFileSystem(FileSystems.getDefault());
     }
 
-    public I18nFileLoaderBuilder scanFileSystem(FileSystem fileSystem) {
+    I18nFileLoaderBuilder scanFileSystem(FileSystem fileSystem) {
         this.fileSystem = requireNonNull(fileSystem);
         this.classLoader = null;
         return this;
     }
 
-    public I18nFileLoaderBuilder scanClassPath() {
+    I18nFileLoaderBuilder scanClassPath() {
         return scanClassPath(Thread.currentThread().getContextClassLoader());
     }
 
-    public I18nFileLoaderBuilder scanClassPath(ClassLoader classLoader) {
+    I18nFileLoaderBuilder scanClassPath(ClassLoader classLoader) {
         this.classLoader = requireNonNull(classLoader);
         this.fileSystem = null;
         return this;
