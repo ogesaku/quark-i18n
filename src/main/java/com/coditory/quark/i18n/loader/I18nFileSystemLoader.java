@@ -179,19 +179,19 @@ public final class I18nFileSystemLoader implements WatchableI18nLoader {
             case DELETE -> {
                 I18nMessageBundle prev = cachedBundles.remove(urlString);
                 if (prev != null) {
-                    logger.info("Removed messages from file: {}", path);
+                    logger.info("Removed messages from file: {}", relativize(path));
                 }
             }
             case MODIFY -> {
                 I18nMessageBundle prev = cachedBundles.remove(urlString);
                 loadToCache(resource);
                 if (prev != null) {
-                    logger.info("Reloaded messages from file: {}", path);
+                    logger.info("Reloaded messages from file: {}", relativize(path));
                 }
             }
             case CREATE -> {
                 loadToCache(resource);
-                logger.info("Loaded messages from file: {}", path);
+                logger.info("Loaded messages from file: {}", relativize(path));
             }
         }
         List<I18nMessageBundle> bundles = cachedBundles.values()
@@ -222,6 +222,13 @@ public final class I18nFileSystemLoader implements WatchableI18nLoader {
         } catch (MalformedURLException e) {
             throw new I18nLoadException("Could not convert path to URL. Path: " + path, e);
         }
+    }
+
+    private Path relativize(Path path) {
+        Path base = fileSystem.getPath("").toAbsolutePath();
+        return path.startsWith(base)
+                ? base.relativize(path)
+                : path;
     }
 
     private record CachedResource(Resource resource, I18nPathGroups matchedGroups) {

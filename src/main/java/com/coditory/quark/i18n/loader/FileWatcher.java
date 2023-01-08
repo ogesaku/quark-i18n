@@ -205,7 +205,7 @@ public final class FileWatcher implements Runnable {
             WatchKey watchKey = path.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
             watchedDirKeys.put(path, watchKey);
             if (isUnderOrEqualBaseDir(path)) {
-                logger.info("Watching dir recursively: " + path);
+                logger.debug("Watching dir recursively: " + path);
                 Files.walkFileTree(path, new SimpleFileVisitor<>() {
                     @Override
                     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
