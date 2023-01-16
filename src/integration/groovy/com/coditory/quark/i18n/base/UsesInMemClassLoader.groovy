@@ -32,6 +32,11 @@ trait UsesInMemClassLoader {
         return I18nMessagePackFactory.scanClassPath(classLoader, firstPattern, others)
     }
 
+    ClassLoader getInMemClassLoader() {
+        setupClassLoaderStub()
+        return classLoader
+    }
+
     private void setupClassLoaderStub() {
         if (classLoader != null) {
             return

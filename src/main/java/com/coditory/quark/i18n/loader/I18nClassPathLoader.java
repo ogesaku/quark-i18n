@@ -74,7 +74,7 @@ public final class I18nClassPathLoader implements I18nLoader {
         Locale locale = matchedGroups.locale();
         I18nPath prefix = matchedGroups.path() != null
                 ? staticPrefix.child(matchedGroups.path())
-                : I18nPath.root();
+                : staticPrefix;
         Map<I18nKey, String> parsed = parseFile(locale, resource);
         return new I18nMessageBundle(parsed, prefix);
     }

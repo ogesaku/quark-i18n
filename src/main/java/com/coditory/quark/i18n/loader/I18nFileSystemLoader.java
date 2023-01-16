@@ -85,7 +85,7 @@ public final class I18nFileSystemLoader implements WatchableI18nLoader {
         Locale locale = matchedGroups.locale();
         I18nPath prefix = matchedGroups.path() != null
                 ? staticPrefix.child(matchedGroups.path())
-                : I18nPath.root();
+                : staticPrefix;
         Map<I18nKey, String> parsed = parseFile(locale, resource);
         String urlString = resource.url().toString();
         I18nMessageBundle result = new I18nMessageBundle(parsed, prefix);

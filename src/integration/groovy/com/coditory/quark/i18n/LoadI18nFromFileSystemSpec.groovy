@@ -1,6 +1,8 @@
 package com.coditory.quark.i18n
 
 import com.coditory.quark.i18n.base.UsesInMemFs
+import com.coditory.quark.i18n.loader.I18nFileSystemLoader
+import com.coditory.quark.i18n.loader.I18nLoader
 import spock.lang.Specification
 
 import static com.coditory.quark.i18n.Locales.EN_US
@@ -63,7 +65,7 @@ class LoadI18nFromFileSystemSpec extends Specification implements UsesInMemFs {
             messagesEn.getMessage("homepage.title") == "Homepage"
     }
 
-    def "should load a single i18n file"() {
+    def "should load a single i18n file with a static key prefix"() {
         given:
             writeInMemFsFile("abc/i18n.yml", """
             title:
@@ -72,15 +74,21 @@ class LoadI18nFromFileSystemSpec extends Specification implements UsesInMemFs {
             """)
 
         when:
-            I18nMessagePack i18nMessagePack = scanInMemFs("abc/i18n.yml")
+            I18nLoader loader = I18nFileSystemLoader.builder(inMemFs)
+                    .scanPathPattern("abc/i18n.yml")
+                    .staticKeyPrefix("homepage")
+                    .build()
+            I18nMessagePack i18nMessagePack = I18nMessagePack.builder()
+                    .addLoader(loader)
+                    .build()
 
         then:
             I18nMessages messagesPl = i18nMessagePack.localize(PL_PL)
-            messagesPl.getMessage("title") == "Strona domowa"
+            messagesPl.getMessage("homepage.title") == "Strona domowa"
 
         and:
             I18nMessages messagesEn = i18nMessagePack.localize(EN_US)
-            messagesEn.getMessage("title") == "Homepage"
+            messagesEn.getMessage("homepage.title") == "Homepage"
     }
 
     def "should load i18n files using locale from file path"() {
