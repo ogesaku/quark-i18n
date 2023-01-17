@@ -26,12 +26,12 @@ import java.util.Set;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
-public final class I18nFileSystemLoader implements WatchableI18nLoader {
-    public static I18nFileLoaderBuilder builder() {
+final class I18nFileSystemLoader implements WatchableI18nLoader {
+    static I18nFileLoaderBuilder builder() {
         return builder(FileSystems.getDefault());
     }
 
-    public static I18nFileLoaderBuilder builder(FileSystem fileSystem) {
+    static I18nFileLoaderBuilder builder(FileSystem fileSystem) {
         return new I18nFileLoaderBuilder()
                 .scanFileSystem(fileSystem);
     }

@@ -31,7 +31,7 @@ dependencies {
 ## Basic usage
 
 ```java
-I18nMessagePack messagePack=I18nMessagePack.builder()
+I18nMessagePack messagePack = I18nMessagePack.builder()
     .scanClassPath("/i18n/messages-{locale}.yml")
     .setDefaultLocale(Locales.EN_US)
     .build();
@@ -77,7 +77,7 @@ Messages can be created in 3 ways:
 ### Manual messages creation
 
 ```java
-I18nMessagePack messages=I18nMessagePack.builder()
+I18nMessagePack messages = I18nMessagePack.builder()
     .addMessage(Loacles.EN_US, "hello", "Hello {0}")
     .addMessage(Loacles.PL_PL, "hello", "Cześć {0}")
     .setDefaultLocale(PL_PL)
@@ -90,7 +90,7 @@ If you want to quickly load messages from a nested map (for example fetched from
 you can use `I18nParsers.parseEntries(map, locale)` to translate nested the map keys into localized message paths.
 
 ```java
-I18nMessagePack messages=I18nMessagePack.builder()
+I18nMessagePack messages = I18nMessagePack.builder()
     .addMessages(I18nParsers.parseEntries(Map.of("hello", "Hello {0}"), EN_US))
     .build();
 ```
@@ -98,7 +98,7 @@ I18nMessagePack messages=I18nMessagePack.builder()
 ### Loading messages from classpath or file system
 
 ```java
-I18nMessagePack messages=I18nMessagePack.builder()
+I18nMessagePack messages = I18nMessagePack.builder()
     .scanClassPath("/i18n/messages-{locale}.yml")
     .scanFileSystem("./overriddes/messages-{locale}.yml")
     .setDefaultLocale(PL_PL)
@@ -158,13 +158,13 @@ If there is no match for message path and locale then less strict locale is used
 If there is still no match then the default locale (followed by a less strict default locale) is used.
 
 ```java
-I18nMessagePack messages=I18nMessagePack.builder()
+I18nMessagePack messages = I18nMessagePack.builder()
     .scanClassPath("/i18n/messages-{locale}.yml")
     .setDefaultLocale(PL_PL)
     .addFallbackKeyPrefix("glossary")
     .build();
 
-String message=messages.getMessage(Locales.en_US, "hello");
+String message = messages.getMessage(Locales.en_US, "hello");
 ```
 
 Locations used to find the message:
@@ -179,7 +179,7 @@ Locations used to find the message:
 Sometimes it is useful to specify a common path prefix for all unmatched queries:
 
 ```java
-I18nMessagePack messages=I18nMessagePack.builder()
+I18nMessagePack messages = I18nMessagePack.builder()
     .scanClassPath("/i18n/messages-{locale}.yml")
     .setDefaultLocale(PL_PL)
     .addMessageFallbackKeyPrefix("common")
@@ -202,7 +202,7 @@ Locations used to find the message:
 Sometimes it's useful to prefix all queries with some path, like in the example:
 
 ```java
-I18nMessagePack messages=I18nMessagePack.builder()
+I18nMessagePack messages = I18nMessagePack.builder()
     .scanClassPath("/i18n/messages-{locale}.yml")
     .setDefaultLocale(PL_PL)
     .build();
@@ -226,7 +226,7 @@ Locations used to find the message:
 Sometimes it's useful to apply common locale to all queries:
 
 ```java
-I18nMessagePack messagePack=I18nMessagePack.builder()
+I18nMessagePack messagePack = I18nMessagePack.builder()
     .scanClassPath("/i18n/messages-{locale}.yml")
     .setDefaultLocale(PL_PL)
     .build();
@@ -240,7 +240,7 @@ String subtitle = messages.getMessage("subtitle");
 Query localization mechanism can be used together with query prefixes:
 
 ```java
-I18nMessages messages=messagePack
+I18nMessages messages = messagePack
     .prefixQueries("pages.homepage")
     .localize(req.getLocale())
 ```
@@ -277,7 +277,7 @@ messages.getMessage("about-company") == "ACME was established on 1988"
 Let's configure messages:
 
 ```java
-I18nMessagePack messagePack=I18nMessagePack.builder()
+I18nMessagePack messagePack = I18nMessagePack.builder()
     .addMessage(EN_US, "msg", "${company.name} was established on 1988")
     .scanClassPath("/i18n/messages-{locale}.yml")
     .setDefaultLocale(PL_PL)
@@ -299,7 +299,7 @@ Locations used to find the message:
 If the reference is defined in a message stored in a prefixed file it will be automatically prefixed:
 
 ```java
-I18nMessagePack messagePack=I18nMessagePack.builder()
+I18nMessagePack messagePack = I18nMessagePack.builder()
     .scanClassPathLocation("i18n/{prefix}/message_{locale}.yml")
     .setDefaultLocale(PL_PL)
     .addFallbackKeyPrefix("fallback")

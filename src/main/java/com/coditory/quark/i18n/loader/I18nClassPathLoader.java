@@ -19,12 +19,12 @@ import java.util.Set;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
-public final class I18nClassPathLoader implements I18nLoader {
-    public static I18nFileLoaderBuilder builder() {
+final class I18nClassPathLoader implements I18nLoader {
+    static I18nFileLoaderBuilder builder() {
         return builder(Thread.currentThread().getContextClassLoader());
     }
 
-    public static I18nFileLoaderBuilder builder(ClassLoader classLoader) {
+    static I18nFileLoaderBuilder builder(ClassLoader classLoader) {
         return new I18nFileLoaderBuilder()
                 .scanClassPath(classLoader);
     }

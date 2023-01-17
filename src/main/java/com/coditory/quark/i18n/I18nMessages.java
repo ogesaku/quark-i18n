@@ -1,6 +1,7 @@
 package com.coditory.quark.i18n;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 import java.util.Map;
@@ -25,10 +26,23 @@ public final class I18nMessages {
         return messagePack.getMessage(locale, path, args);
     }
 
+    @Nullable
+    public String getMessageOrNull(@NotNull I18nPath path, Object... args) {
+        expectNonNull(path, "path");
+        expectNonNull(args, "args");
+        return messagePack.getMessageOrNull(locale, path, args);
+    }
+
     @NotNull
     public String getMessage(@NotNull I18nPath path) {
         expectNonNull(path, "path");
         return messagePack.getMessage(locale, path);
+    }
+
+    @Nullable
+    public String getMessageOrNull(@NotNull I18nPath path) {
+        expectNonNull(path, "path");
+        return messagePack.getMessageOrNull(locale, path);
     }
 
     @NotNull
@@ -38,11 +52,25 @@ public final class I18nMessages {
         return messagePack.getMessage(locale, key, args);
     }
 
+    @Nullable
+    public String getMessageOrNull(@NotNull String key, Object... args) {
+        expectNonBlank(key, "key");
+        expectNonNull(args, "args");
+        return messagePack.getMessageOrNull(locale, key, args);
+    }
+
     @NotNull
     public String getMessage(@NotNull String key, @NotNull Map<String, Object> args) {
         expectNonBlank(key, "key");
         expectNonNull(args, "args");
         return messagePack.getMessage(locale, key, args);
+    }
+
+    @Nullable
+    public String getMessageOrNull(@NotNull String key, @NotNull Map<String, Object> args) {
+        expectNonBlank(key, "key");
+        expectNonNull(args, "args");
+        return messagePack.getMessageOrNull(locale, key, args);
     }
 
     @NotNull
@@ -51,8 +79,14 @@ public final class I18nMessages {
         return getMessage(key, EMPTY_ARGS);
     }
 
+    @Nullable
+    public String getMessageOrNull(@NotNull String key) {
+        expectNonBlank(key, "key");
+        return messagePack.getMessageOrNull(locale, key);
+    }
+
     @NotNull
-    public I18nMessages addPrefix(@NotNull String prefix) {
+    public I18nMessages prefixQueries(@NotNull String prefix) {
         return messagePack.prefixQueries(prefix).localize(locale);
     }
 
